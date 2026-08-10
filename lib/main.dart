@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,9 +15,6 @@ Future<void> main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
-
-  
-
   runApp(
     const ProviderScope(
       child: AdoppiApp(),
@@ -23,19 +22,18 @@ Future<void> main() async {
   );
 }
 
-class AdoppiApp extends StatelessWidget {
+class AdoppiApp extends ConsumerWidget {
   const AdoppiApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
       title: 'Adoppi',
       debugShowCheckedModeBanner: false,
-      home: const Scaffold(
-        body: Center(
-          child: Text('Supabase conectado ✓'),
-        ),
-      ),
+      theme: AppTheme.lightTheme,
+      routerConfig: router,
     );
   }
 }
