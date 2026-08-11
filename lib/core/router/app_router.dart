@@ -2,23 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-// Importaciones de pantallas — las iremos agregando conforme avancemos
-// Por ahora usamos placeholders
+import '../../features/auth/presentation/screens/login_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: AppRoutes.splash,
+    initialLocation: AppRoutes.login,
     redirect: (context, state) {
       final session = Supabase.instance.client.auth.currentSession;
       final isAuthenticated = session != null;
       final isAuthRoute = state.matchedLocation == AppRoutes.login ||
           state.matchedLocation == AppRoutes.register ||
-          state.matchedLocation == AppRoutes.forgotPassword ||
-          state.matchedLocation == AppRoutes.splash;
+          state.matchedLocation == AppRoutes.forgotPassword;
 
       if (!isAuthenticated && !isAuthRoute) {
         return AppRoutes.login;
+      }
+
+      if (isAuthenticated && isAuthRoute) {
+        return AppRoutes.home;
       }
 
       return null;
@@ -32,7 +33,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.login,
         name: 'login',
-        builder: (context, state) => const PlaceholderScreen(title: 'Login'),
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
         path: AppRoutes.register,
@@ -55,7 +56,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.home,
         name: 'home',
-        builder: (context, state) => const PlaceholderScreen(title: 'Home'),
+        builder: (context, state) => const HomeTemp(),
       ),
       GoRoute(
         path: AppRoutes.petDetail,
@@ -122,7 +123,6 @@ class AppRoutes {
   static const String settings = '/settings';
 }
 
-// Pantalla temporal mientras construimos las pantallas reales
 class PlaceholderScreen extends StatelessWidget {
   final String title;
   const PlaceholderScreen({super.key, required this.title});
@@ -135,6 +135,27 @@ class PlaceholderScreen extends StatelessWidget {
         child: Text(
           title,
           style: Theme.of(context).textTheme.titleLarge,
+        ),
+      ),
+    );
+  }
+}
+
+class HomeTemp extends ConsumerWidget {
+  const HomeTemp({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Home')),
+      body: Center(
+        child: ElevatedButton.icon(
+          onPressed: () async {
+            await Supabase.instance.client.auth.signOut();
+            if (context.mounted) context.go(AppRoutes.login);
+          },
+          icon: const Icon(Icons.logout),
+          label: const Text('Cerrar sesión'),
         ),
       ),
     );
