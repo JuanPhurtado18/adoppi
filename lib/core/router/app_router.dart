@@ -3,10 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/splash/presentation/splash_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: AppRoutes.login,
+    initialLocation: AppRoutes.splash,
     redirect: (context, state) {
       final session = Supabase.instance.client.auth.currentSession;
       final isAuthenticated = session != null;
@@ -15,7 +16,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == AppRoutes.forgotPassword;
 
       if (!isAuthenticated && !isAuthRoute) {
-        return AppRoutes.login;
+        if (state.matchedLocation != AppRoutes.splash) {
+          return AppRoutes.login;
+        }
       }
 
       if (isAuthenticated && isAuthRoute) {
@@ -28,7 +31,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.splash,
         name: 'splash',
-        builder: (context, state) => const PlaceholderScreen(title: 'Splash'),
+        builder: (context, state) => const SplashScreen(),
       ),
       GoRoute(
         path: AppRoutes.login,
