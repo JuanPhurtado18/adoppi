@@ -83,6 +83,7 @@ Future<void> signUpAdoptant({
       'name': shelterName,
       'address': address,
       'avatar_url': avatarUrl,
+      'email':email,
     });
   }
 

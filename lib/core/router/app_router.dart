@@ -4,29 +4,38 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
+import '../../features/shelter_panel/presentation/screens/shelter_panel_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
-    redirect: (context, state) {
-      final session = Supabase.instance.client.auth.currentSession;
-      final isAuthenticated = session != null;
-      final isAuthRoute = state.matchedLocation == AppRoutes.login ||
-          state.matchedLocation == AppRoutes.register ||
-          state.matchedLocation == AppRoutes.forgotPassword;
+redirect: (context, state) async {
+  final session = Supabase.instance.client.auth.currentSession;
+  final isAuthenticated = session != null;
+  final isAuthRoute = state.matchedLocation == AppRoutes.login ||
+      state.matchedLocation == AppRoutes.register ||
+      state.matchedLocation == AppRoutes.forgotPassword;
 
-      if (!isAuthenticated && !isAuthRoute) {
-        if (state.matchedLocation != AppRoutes.splash) {
-          return AppRoutes.login;
-        }
-      }
+  if (!isAuthenticated && !isAuthRoute) {
+    if (state.matchedLocation != AppRoutes.splash) {
+      return AppRoutes.login;
+    }
+  }
 
-      if (isAuthenticated && isAuthRoute) {
-        return AppRoutes.home;
-      }
+  if (isAuthenticated && isAuthRoute) {
+    final role = session.user.userMetadata?['role'] as String?;
+    if (role == 'refugio') return AppRoutes.shelterPanel;
+    return AppRoutes.home;
+  }
 
-      return null;
-    },
+  if (isAuthenticated &&
+      state.matchedLocation == AppRoutes.home) {
+    final role = session.user.userMetadata?['role'] as String?;
+    if (role == 'refugio') return AppRoutes.shelterPanel;
+  }
+
+  return null;
+},
     routes: [
       GoRoute(
         path: AppRoutes.splash,
@@ -60,6 +69,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.home,
         name: 'home',
         builder: (context, state) => const HomeTemp(),
+      ),
+      GoRoute(
+        path: AppRoutes.shelterPanel,
+        name: 'shelterPanel',
+        builder: (context, state) => const ShelterPanelScreen(),
       ),
       GoRoute(
         path: AppRoutes.petDetail,
@@ -117,6 +131,7 @@ class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String terms = '/terms';
   static const String home = '/home';
+  static const String shelterPanel = '/shelter-panel';
   static const String petDetail = '/pets/:id';
   static const String shelters = '/shelters';
   static const String shelterDetail = '/shelters/:id';
