@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/auth_controller.dart';
-import '../../../auth/domain/auth_state.dart';
+import '../../domain/auth_state.dart';
 import 'terms_modal.dart';
 
 class RegisterShelterForm extends ConsumerStatefulWidget {
@@ -21,6 +21,10 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _scheduleController = TextEditingController();
   bool _obscurePassword = true;
   bool _acceptedTerms = false;
   File? _avatarFile;
@@ -31,6 +35,10 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
     _emailController.dispose();
     _passwordController.dispose();
     _addressController.dispose();
+    _cityController.dispose();
+    _phoneController.dispose();
+    _descriptionController.dispose();
+    _scheduleController.dispose();
     super.dispose();
   }
 
@@ -52,23 +60,31 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
     if (_avatarFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Por favor selecciona una foto del refugio')),
+          content: Text('Por favor selecciona una foto del refugio'),
+        ),
       );
       return;
     }
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Debes aceptar los términos y condiciones')),
+          content: Text('Debes aceptar los términos y condiciones'),
+        ),
       );
       return;
     }
 
-    await ref.read(authControllerProvider.notifier).signUpShelter(
+    await ref
+        .read(authControllerProvider.notifier)
+        .signUpShelter(
           email: _emailController.text.trim(),
           password: _passwordController.text,
           shelterName: _nameController.text.trim(),
           address: _addressController.text.trim(),
+          city: _cityController.text.trim(),
+          phone: _phoneController.text.trim(),
+          description: _descriptionController.text.trim(),
+          schedule: _scheduleController.text.trim(),
           avatarFile: _avatarFile!,
         );
   }
@@ -129,7 +145,7 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
           TextFormField(
             controller: _nameController,
             decoration: const InputDecoration(
-              labelText: 'Nombre del refugio',
+              labelText: 'Nombre del refugio *',
               hintText: 'Fundación Amigos Peludos',
               prefixIcon: Icon(Icons.home_outlined),
             ),
@@ -142,12 +158,30 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
           ),
           const SizedBox(height: 16),
 
+          // Descripción
+          TextFormField(
+            controller: _descriptionController,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Descripción *',
+              hintText: 'Cuéntanos sobre tu refugio o fundación',
+              prefixIcon: Icon(Icons.description_outlined),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'La descripción es requerida';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
           // Dirección
           TextFormField(
             controller: _addressController,
             decoration: const InputDecoration(
-              labelText: 'Dirección',
-              hintText: 'Calle 5 #40-45, Cali',
+              labelText: 'Dirección *',
+              hintText: 'Calle 5 #40-45',
               prefixIcon: Icon(Icons.location_on_outlined),
             ),
             validator: (value) {
@@ -159,12 +193,66 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
           ),
           const SizedBox(height: 16),
 
+          // Ciudad
+          TextFormField(
+            controller: _cityController,
+            decoration: const InputDecoration(
+              labelText: 'Ciudad *',
+              hintText: 'Cali',
+              prefixIcon: Icon(Icons.location_city_outlined),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'La ciudad es requerida';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Teléfono
+          TextFormField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Teléfono *',
+              hintText: '3001234567',
+              prefixIcon: Icon(Icons.phone_outlined),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'El teléfono es requerido';
+              }
+              if (value.trim().length < 7) {
+                return 'Ingresa un teléfono válido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _scheduleController,
+            decoration: const InputDecoration(
+              labelText: 'Horario *',
+              hintText: 'Ej: Lun-Sáb 9 AM - 6 PM',
+              prefixIcon: Icon(Icons.schedule_outlined),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'El horario es requerido';
+              }
+              return null;
+            },
+          ),
+
           // Email
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
-              labelText: 'Correo electrónico',
+              labelText: 'Correo electrónico *',
               hintText: 'contacto@refugio.com',
               prefixIcon: Icon(Icons.email_outlined),
             ),
@@ -172,8 +260,9 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
               if (value == null || value.trim().isEmpty) {
                 return 'El correo es requerido';
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                  .hasMatch(value)) {
+              if (!RegExp(
+                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+              ).hasMatch(value)) {
                 return 'Ingresa un correo válido';
               }
               return null;
@@ -186,7 +275,7 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
             controller: _passwordController,
             obscureText: _obscurePassword,
             decoration: InputDecoration(
-              labelText: 'Contraseña',
+              labelText: 'Contraseña *',
               hintText: '••••••••',
               prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(

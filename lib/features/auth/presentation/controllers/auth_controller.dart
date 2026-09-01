@@ -8,10 +8,7 @@ class AuthController extends StateNotifier<AuthState> {
 
   AuthController(this._repository) : super(const AuthState());
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
       await _repository.signIn(email: email, password: password);
@@ -52,6 +49,10 @@ class AuthController extends StateNotifier<AuthState> {
     required String password,
     required String shelterName,
     required String address,
+    required String city,
+    required String phone,
+    required String description,
+    required String schedule,
     required File avatarFile,
   }) async {
     state = state.copyWith(status: AuthStatus.loading);
@@ -61,6 +62,10 @@ class AuthController extends StateNotifier<AuthState> {
         password: password,
         shelterName: shelterName,
         address: address,
+        city: city,
+        phone: phone,
+        description: description,
+        schedule: schedule,
         avatarFile: avatarFile,
       );
       state = state.copyWith(status: AuthStatus.registered);
@@ -100,7 +105,8 @@ class AuthController extends StateNotifier<AuthState> {
   }
 }
 
-final authControllerProvider =
-    StateNotifierProvider<AuthController, AuthState>((ref) {
-  return AuthController(ref.watch(authRepositoryProvider));
-});
+final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
+  (ref) {
+    return AuthController(ref.watch(authRepositoryProvider));
+  },
+);

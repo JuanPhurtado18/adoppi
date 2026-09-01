@@ -17,56 +17,53 @@ class AuthRepository {
     );
   }
 
-Future<void> signUpAdoptant({
-  required String email,
-  required String password,
-  required String fullName,
-  required File avatarFile,
-}) async {
-  try {
-    final response = await _client.auth.signUp(
-      email: email,
-      password: password,
-      data: {
-        'full_name': fullName,
-        'role': 'adoptante',
-      },
-    );
+  Future<void> signUpAdoptant({
+    required String email,
+    required String password,
+    required String fullName,
+    required File avatarFile,
+  }) async {
+    try {
+      final response = await _client.auth.signUp(
+        email: email,
+        password: password,
+        data: {'full_name': fullName, 'role': 'adoptante'},
+      );
 
-    final userId = response.user?.id;
-    if (userId == null) throw Exception('Error al crear el usuario');
+      final userId = response.user?.id;
+      if (userId == null) throw Exception('Error al crear el usuario');
 
-    final avatarUrl = await _uploadAvatar(
-      userId: userId,
-      file: avatarFile,
-      bucket: 'avatars',
-    );
+      final avatarUrl = await _uploadAvatar(
+        userId: userId,
+        file: avatarFile,
+        bucket: 'avatars',
+      );
 
-    await _client
-        .from('profiles')
-        .update({'avatar_url': avatarUrl})
-        .eq('id', userId);
-
-  } catch (e) {
-    print('ERROR DETALLADO: $e');
-    rethrow;
+      await _client
+          .from('profiles')
+          .update({'avatar_url': avatarUrl})
+          .eq('id', userId);
+    } catch (e) {
+      print('ERROR DETALLADO: $e');
+      rethrow;
+    }
   }
-}
 
   Future<void> signUpShelter({
     required String email,
     required String password,
     required String shelterName,
     required String address,
+    required String city,
+    required String phone,
+    required String description,
+    required String schedule,
     required File avatarFile,
   }) async {
     final response = await _client.auth.signUp(
       email: email,
       password: password,
-      data: {
-        'full_name': shelterName,
-        'role': 'refugio',
-      },
+      data: {'full_name': shelterName, 'role': 'refugio'},
     );
 
     final userId = response.user?.id;
@@ -82,8 +79,12 @@ Future<void> signUpAdoptant({
       'user_id': userId,
       'name': shelterName,
       'address': address,
+      'city': city,
+      'phone': phone,
+      'description': description,
+      'schedule': schedule,
+      'email': email,
       'avatar_url': avatarUrl,
-      'email':email,
     });
   }
 
@@ -99,11 +100,9 @@ Future<void> signUpAdoptant({
     final fileExt = file.path.split('.').last;
     final filePath = '$userId/avatar.$fileExt';
 
-    await _client.storage.from(bucket).upload(
-      filePath,
-      file,
-      fileOptions: const FileOptions(upsert: true),
-    );
+    await _client.storage
+        .from(bucket)
+        .upload(filePath, file, fileOptions: const FileOptions(upsert: true));
 
     return _client.storage.from(bucket).getPublicUrl(filePath);
   }
