@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/shelter_panel/presentation/screens/shelter_panel_screen.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -68,7 +69,7 @@ redirect: (context, state) async {
       GoRoute(
         path: AppRoutes.home,
         name: 'home',
-        builder: (context, state) => const HomeTemp(),
+        builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
         path: AppRoutes.shelterPanel,
