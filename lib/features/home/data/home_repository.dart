@@ -52,6 +52,16 @@ class HomeRepository {
 
     return response;
   }
+
+  Future<void> updatePetPreferences({
+    required String userId,
+    required List<String> preferences,
+  }) async {
+    await _client
+        .from('profiles')
+        .update({'pet_preferences': preferences})
+        .eq('id', userId);
+  }
 }
 
 final homeRepositoryProvider = Provider<HomeRepository>((ref) {
