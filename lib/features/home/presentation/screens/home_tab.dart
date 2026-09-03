@@ -4,6 +4,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/pet_card_home.dart';
 import '../widgets/shelter_card_home.dart';
+import '../../../pet_detail/presentation/screens/pet_detail_screen.dart';
+import '../../../pet_detail/presentation/screens/shelter_detail_screen.dart';
 
 class HomeTab extends ConsumerStatefulWidget {
   const HomeTab({super.key});
@@ -206,7 +208,16 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                           padding: const EdgeInsets.only(right: 12),
                           child: ShelterCardHome(
                             shelter: shelter,
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ShelterDetailScreen(
+                                    shelterId: shelter.id,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         );
                       },
@@ -291,7 +302,17 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                     itemCount: state.pets.length,
                     itemBuilder: (context, index) {
                       final pet = state.pets[index];
-                      return PetCardHome(pet: pet, onTap: () {});
+                      return PetCardHome(
+                        pet: pet,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PetDetailScreen(petId: pet.id),
+                            ),
+                          );
+                        },
+                      );
                     },
                   ),
           ],
