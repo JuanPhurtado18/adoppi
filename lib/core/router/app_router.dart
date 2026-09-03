@@ -10,33 +10,33 @@ import '../../features/home/presentation/screens/home_screen.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
-redirect: (context, state) async {
-  final session = Supabase.instance.client.auth.currentSession;
-  final isAuthenticated = session != null;
-  final isAuthRoute = state.matchedLocation == AppRoutes.login ||
-      state.matchedLocation == AppRoutes.register ||
-      state.matchedLocation == AppRoutes.forgotPassword;
+    redirect: (context, state) async {
+      final session = Supabase.instance.client.auth.currentSession;
+      final isAuthenticated = session != null;
+      final isAuthRoute =
+          state.matchedLocation == AppRoutes.login ||
+          state.matchedLocation == AppRoutes.register ||
+          state.matchedLocation == AppRoutes.forgotPassword;
 
-  if (!isAuthenticated && !isAuthRoute) {
-    if (state.matchedLocation != AppRoutes.splash) {
-      return AppRoutes.login;
-    }
-  }
+      if (!isAuthenticated && !isAuthRoute) {
+        if (state.matchedLocation != AppRoutes.splash) {
+          return AppRoutes.login;
+        }
+      }
 
-  if (isAuthenticated && isAuthRoute) {
-    final role = session.user.userMetadata?['role'] as String?;
-    if (role == 'refugio') return AppRoutes.shelterPanel;
-    return AppRoutes.home;
-  }
+      if (isAuthenticated && isAuthRoute) {
+        final role = session.user.userMetadata?['role'] as String?;
+        if (role == 'refugio') return AppRoutes.shelterPanel;
+        return AppRoutes.home;
+      }
 
-  if (isAuthenticated &&
-      state.matchedLocation == AppRoutes.home) {
-    final role = session.user.userMetadata?['role'] as String?;
-    if (role == 'refugio') return AppRoutes.shelterPanel;
-  }
+      if (isAuthenticated && state.matchedLocation == AppRoutes.home) {
+        final role = session.user.userMetadata?['role'] as String?;
+        if (role == 'refugio') return AppRoutes.shelterPanel;
+      }
 
-  return null;
-},
+      return null;
+    },
     routes: [
       GoRoute(
         path: AppRoutes.splash,
@@ -51,8 +51,7 @@ redirect: (context, state) async {
       GoRoute(
         path: AppRoutes.register,
         name: 'register',
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Registro'),
+        builder: (context, state) => const PlaceholderScreen(title: 'Registro'),
       ),
       GoRoute(
         path: AppRoutes.forgotPassword,
@@ -87,8 +86,7 @@ redirect: (context, state) async {
       GoRoute(
         path: AppRoutes.shelters,
         name: 'shelters',
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Refugios'),
+        builder: (context, state) => const PlaceholderScreen(title: 'Refugios'),
       ),
       GoRoute(
         path: AppRoutes.shelterDetail,
@@ -112,8 +110,7 @@ redirect: (context, state) async {
       GoRoute(
         path: AppRoutes.profile,
         name: 'profile',
-        builder: (context, state) =>
-            const PlaceholderScreen(title: 'Perfil'),
+        builder: (context, state) => const PlaceholderScreen(title: 'Perfil'),
       ),
       GoRoute(
         path: AppRoutes.settings,
@@ -151,31 +148,7 @@ class PlaceholderScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       body: Center(
-        child: Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-      ),
-    );
-  }
-}
-
-class HomeTemp extends ConsumerWidget {
-  const HomeTemp({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
-      body: Center(
-        child: ElevatedButton.icon(
-          onPressed: () async {
-            await Supabase.instance.client.auth.signOut();
-            if (context.mounted) context.go(AppRoutes.login);
-          },
-          icon: const Icon(Icons.logout),
-          label: const Text('Cerrar sesión'),
-        ),
+        child: Text(title, style: Theme.of(context).textTheme.titleLarge),
       ),
     );
   }

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/auth_controller.dart';
-import '../../../auth/domain/auth_state.dart';
+import '../../domain/auth_state.dart';
 import 'terms_modal.dart';
 
 class RegisterAdoptantForm extends ConsumerStatefulWidget {
@@ -18,6 +18,10 @@ class RegisterAdoptantForm extends ConsumerStatefulWidget {
 class _RegisterAdoptantFormState extends ConsumerState<RegisterAdoptantForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  final _ageController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _cityController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
@@ -27,6 +31,10 @@ class _RegisterAdoptantFormState extends ConsumerState<RegisterAdoptantForm> {
   @override
   void dispose() {
     _nameController.dispose();
+    _lastNameController.dispose();
+    _ageController.dispose();
+    _phoneController.dispose();
+    _cityController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -49,21 +57,31 @@ class _RegisterAdoptantFormState extends ConsumerState<RegisterAdoptantForm> {
     if (!_formKey.currentState!.validate()) return;
     if (_avatarFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor selecciona una foto de perfil')),
+        const SnackBar(
+          content: Text('Por favor selecciona una foto de perfil'),
+        ),
       );
       return;
     }
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Debes aceptar los términos y condiciones')),
+        const SnackBar(
+          content: Text('Debes aceptar los términos y condiciones'),
+        ),
       );
       return;
     }
 
-    await ref.read(authControllerProvider.notifier).signUpAdoptant(
+    await ref
+        .read(authControllerProvider.notifier)
+        .signUpAdoptant(
           email: _emailController.text.trim(),
           password: _passwordController.text,
           fullName: _nameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          age: int.parse(_ageController.text.trim()),
+          phone: _phoneController.text.trim(),
+          city: _cityController.text.trim(),
           avatarFile: _avatarFile!,
         );
   }
@@ -116,10 +134,7 @@ class _RegisterAdoptantFormState extends ConsumerState<RegisterAdoptantForm> {
           const SizedBox(height: 8),
           const Text(
             'Foto de perfil *',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
 
@@ -127,7 +142,7 @@ class _RegisterAdoptantFormState extends ConsumerState<RegisterAdoptantForm> {
           TextFormField(
             controller: _nameController,
             decoration: const InputDecoration(
-              labelText: 'Nombre completo',
+              labelText: 'Nombre *',
               hintText: 'Tu nombre',
               prefixIcon: Icon(Icons.person_outline),
             ),
@@ -143,12 +158,89 @@ class _RegisterAdoptantFormState extends ConsumerState<RegisterAdoptantForm> {
           ),
           const SizedBox(height: 16),
 
+          // Apellido
+          TextFormField(
+            controller: _lastNameController,
+            decoration: const InputDecoration(
+              labelText: 'Apellido *',
+              hintText: 'Tu apellido',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'El apellido es requerido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Edad
+          TextFormField(
+            controller: _ageController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Edad *',
+              hintText: 'Tu edad',
+              prefixIcon: Icon(Icons.cake_outlined),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'La edad es requerida';
+              }
+              final age = int.tryParse(value.trim());
+              if (age == null || age < 18 || age > 100) {
+                return 'Ingresa una edad válida (mayor de 18)';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Teléfono
+          TextFormField(
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Teléfono *',
+              hintText: '3001234567',
+              prefixIcon: Icon(Icons.phone_outlined),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'El teléfono es requerido';
+              }
+              if (value.trim().length < 7) {
+                return 'Ingresa un teléfono válido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Ciudad
+          TextFormField(
+            controller: _cityController,
+            decoration: const InputDecoration(
+              labelText: 'Ciudad *',
+              hintText: 'Tu ciudad',
+              prefixIcon: Icon(Icons.location_city_outlined),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'La ciudad es requerida';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
           // Email
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
-              labelText: 'Correo electrónico',
+              labelText: 'Correo electrónico *',
               hintText: 'your@email.com',
               prefixIcon: Icon(Icons.email_outlined),
             ),
@@ -156,8 +248,9 @@ class _RegisterAdoptantFormState extends ConsumerState<RegisterAdoptantForm> {
               if (value == null || value.trim().isEmpty) {
                 return 'El correo es requerido';
               }
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                  .hasMatch(value)) {
+              if (!RegExp(
+                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+              ).hasMatch(value)) {
                 return 'Ingresa un correo válido';
               }
               return null;
@@ -170,7 +263,7 @@ class _RegisterAdoptantFormState extends ConsumerState<RegisterAdoptantForm> {
             controller: _passwordController,
             obscureText: _obscurePassword,
             decoration: InputDecoration(
-              labelText: 'Contraseña',
+              labelText: 'Contraseña *',
               hintText: '••••••••',
               prefixIcon: const Icon(Icons.lock_outline),
               suffixIcon: IconButton(

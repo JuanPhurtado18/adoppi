@@ -21,32 +21,38 @@ class AuthRepository {
     required String email,
     required String password,
     required String fullName,
+    required String lastName,
+    required int age,
+    required String phone,
+    required String city,
     required File avatarFile,
   }) async {
-    try {
-      final response = await _client.auth.signUp(
-        email: email,
-        password: password,
-        data: {'full_name': fullName, 'role': 'adoptante'},
-      );
+    final response = await _client.auth.signUp(
+      email: email,
+      password: password,
+      data: {
+        'full_name': fullName,
+        'last_name': lastName,
+        'age': age,
+        'phone': phone,
+        'city': city,
+        'role': 'adoptante',
+      },
+    );
 
-      final userId = response.user?.id;
-      if (userId == null) throw Exception('Error al crear el usuario');
+    final userId = response.user?.id;
+    if (userId == null) throw Exception('Error al crear el usuario');
 
-      final avatarUrl = await _uploadAvatar(
-        userId: userId,
-        file: avatarFile,
-        bucket: 'avatars',
-      );
+    final avatarUrl = await _uploadAvatar(
+      userId: userId,
+      file: avatarFile,
+      bucket: 'avatars',
+    );
 
-      await _client
-          .from('profiles')
-          .update({'avatar_url': avatarUrl})
-          .eq('id', userId);
-    } catch (e) {
-      print('ERROR DETALLADO: $e');
-      rethrow;
-    }
+    await _client
+        .from('profiles')
+        .update({'avatar_url': avatarUrl})
+        .eq('id', userId);
   }
 
   Future<void> signUpShelter({
@@ -104,7 +110,9 @@ class AuthRepository {
         .from(bucket)
         .upload(filePath, file, fileOptions: const FileOptions(upsert: true));
 
-    return _client.storage.from(bucket).getPublicUrl(filePath);
+    final url = _client.storage.from(bucket).getPublicUrl(filePath);
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    return '$url?v=$timestamp';
   }
 }
 

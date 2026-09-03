@@ -25,6 +25,10 @@ class AuthController extends StateNotifier<AuthState> {
     required String email,
     required String password,
     required String fullName,
+    required String lastName,
+    required int age,
+    required String phone,
+    required String city,
     required File avatarFile,
   }) async {
     state = state.copyWith(status: AuthStatus.loading);
@@ -33,6 +37,10 @@ class AuthController extends StateNotifier<AuthState> {
         email: email,
         password: password,
         fullName: fullName,
+        lastName: lastName,
+        age: age,
+        phone: phone,
+        city: city,
         avatarFile: avatarFile,
       );
       state = state.copyWith(status: AuthStatus.registered);
@@ -86,7 +94,9 @@ class AuthController extends StateNotifier<AuthState> {
       return 'Correo o contraseña incorrectos';
     }
     if (error.contains('Email already registered') ||
-        error.contains('already been registered')) {
+        error.contains('already been registered') ||
+        error.contains('user_already_exists') ||
+        error.contains('User already registered')) {
       return 'Este correo ya está registrado';
     }
     if (error.contains('Password should be at least')) {
