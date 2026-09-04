@@ -15,17 +15,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final _tabs = const [
-    HomeTab(),
-    SheltersTab(),
-    MessagesTab(),
-    AdoptantProfileTab(),
-  ];
+  void _goToShelters() {
+    setState(() => _currentIndex = 1);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final tabs = [
+      HomeTab(onSeeAllShelters: _goToShelters),
+      const SheltersTab(),
+      const MessagesTab(),
+      const AdoptantProfileTab(),
+    ];
+
     return Scaffold(
-      body: _tabs[_currentIndex],
+      body: tabs[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),

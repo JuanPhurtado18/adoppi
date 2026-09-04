@@ -8,7 +8,9 @@ import '../../../pet_detail/presentation/screens/pet_detail_screen.dart';
 import '../../../pet_detail/presentation/screens/shelter_detail_screen.dart';
 
 class HomeTab extends ConsumerStatefulWidget {
-  const HomeTab({super.key});
+  final VoidCallback onSeeAllShelters;
+
+  const HomeTab({super.key, required this.onSeeAllShelters});
 
   @override
   ConsumerState<HomeTab> createState() => _HomeTabState();
@@ -127,36 +129,35 @@ class _HomeTabState extends ConsumerState<HomeTab> {
             // Filtros por especie
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  _SpeciesChip(
-                    label: 'Todos',
-                    icon: Icons.pets,
-                    isSelected: state.selectedSpecies == 'todos',
-                    onTap: () => controller.filterBySpecies('todos'),
-                  ),
-                  const SizedBox(width: 8),
-                  _SpeciesChip(
-                    label: 'Perros',
-                    icon: Icons.cruelty_free,
-                    isSelected: state.selectedSpecies == 'perro',
-                    onTap: () => controller.filterBySpecies('perro'),
-                  ),
-                  const SizedBox(width: 8),
-                  _SpeciesChip(
-                    label: 'Gatos',
-                    icon: Icons.cruelty_free,
-                    isSelected: state.selectedSpecies == 'gato',
-                    onTap: () => controller.filterBySpecies('gato'),
-                  ),
-                  const SizedBox(width: 8),
-                  _SpeciesChip(
-                    label: 'Otros',
-                    icon: Icons.cruelty_free,
-                    isSelected: state.selectedSpecies == 'otro',
-                    onTap: () => controller.filterBySpecies('otro'),
-                  ),
-                ],
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _SpeciesChip(
+                      label: 'Todos',
+                      isSelected: state.selectedSpecies == 'todos',
+                      onTap: () => controller.filterBySpecies('todos'),
+                    ),
+                    const SizedBox(width: 8),
+                    _SpeciesChip(
+                      label: 'Perros',
+                      isSelected: state.selectedSpecies == 'perro',
+                      onTap: () => controller.filterBySpecies('perro'),
+                    ),
+                    const SizedBox(width: 8),
+                    _SpeciesChip(
+                      label: 'Gatos',
+                      isSelected: state.selectedSpecies == 'gato',
+                      onTap: () => controller.filterBySpecies('gato'),
+                    ),
+                    const SizedBox(width: 8),
+                    _SpeciesChip(
+                      label: 'Otros',
+                      isSelected: state.selectedSpecies == 'otro',
+                      onTap: () => controller.filterBySpecies('otro'),
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -176,7 +177,10 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  TextButton(onPressed: () {}, child: const Text('Ver todos')),
+                  TextButton(
+                    onPressed: widget.onSeeAllShelters,
+                    child: const Text('Ver todos'),
+                  ),
                 ],
               ),
             ),
@@ -324,13 +328,11 @@ class _HomeTabState extends ConsumerState<HomeTab> {
 
 class _SpeciesChip extends StatelessWidget {
   final String label;
-  final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _SpeciesChip({
     required this.label,
-    required this.icon,
     required this.isSelected,
     required this.onTap,
   });
