@@ -167,10 +167,9 @@ class ShelterDetailScreen extends ConsumerWidget {
                                     .getOrCreateConversation(
                                       adoptantId: user.id,
                                       shelterId: shelterId,
-                                      petId: '',
-                                      petName: 'una mascota',
+                                      petId: null,
+                                      petName: '',
                                     );
-
                                 if (context.mounted) {
                                   Navigator.push(
                                     context,

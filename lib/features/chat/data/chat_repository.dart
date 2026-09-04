@@ -6,53 +6,96 @@ import '../domain/message.dart';
 class ChatRepository {
   final SupabaseClient _client;
   String? get currentUserId => _client.auth.currentUser?.id;
+
   ChatRepository(this._client);
 
-  // Obtener o crear conversación
   Future<Conversation> getOrCreateConversation({
     required String adoptantId,
     required String shelterId,
-    required String petId,
+    String? petId,
     required String petName,
   }) async {
-    // Buscar conversación existente
-    final existing = await _client
+    // Buscar cualquier conversación existente con este refugio
+    final existingList = await _client
         .from('conversations')
         .select('*, shelters(name, avatar_url), pets(name, main_photo_url)')
         .eq('adoptant_id', adoptantId)
         .eq('shelter_id', shelterId)
-        .eq('pet_id', petId)
-        .maybeSingle();
+        .order('created_at', ascending: false)
+        .limit(1);
 
-    if (existing != null) {
-      return Conversation.fromMap(existing);
+    if ((existingList as List).isNotEmpty) {
+      final existing = Conversation.fromMap(existingList.first);
+
+      // Si viene desde una mascota específica, siempre enviar el mensaje
+      // de interés aunque la conversación ya exista
+      if (petId != null) {
+        if (existing.petId == null) {
+          await _client
+              .from('conversations')
+              .update({'pet_id': petId})
+              .eq('id', existing.id);
+        }
+
+        // Verificar si ya se envió un mensaje de interés por esta mascota
+        final existingMessage = await _client
+            .from('messages')
+            .select()
+            .eq('conversation_id', existing.id)
+            .eq('sender_id', adoptantId)
+            .ilike('content', '%$petName%')
+            .limit(1);
+
+        if ((existingMessage as List).isEmpty) {
+          await sendMessage(
+            conversationId: existing.id,
+            senderId: adoptantId,
+            content:
+                'Hola, estoy interesado en adoptar a $petName. ¿Me podrías dar más información?',
+          );
+        }
+
+        final updated = await _client
+            .from('conversations')
+            .select('*, shelters(name, avatar_url), pets(name, main_photo_url)')
+            .eq('id', existing.id)
+            .single();
+
+        return Conversation.fromMap(updated);
+      }
+
+      // Si viene desde contactar refugio sin mascota, solo abrir la conversación
+      return existing;
     }
 
-    // Crear nueva conversación
+    // No existe ninguna conversación, crear una nueva
+    final insertData = {
+      'adoptant_id': adoptantId,
+      'shelter_id': shelterId,
+      if (petId != null) 'pet_id': petId,
+    };
+
     final newConv = await _client
         .from('conversations')
-        .insert({
-          'adoptant_id': adoptantId,
-          'shelter_id': shelterId,
-          'pet_id': petId,
-        })
+        .insert(insertData)
         .select('*, shelters(name, avatar_url), pets(name, main_photo_url)')
         .single();
 
     final conversation = Conversation.fromMap(newConv);
 
-    // Enviar mensaje inicial automático
+    final message = petId != null
+        ? 'Hola, estoy interesado en adoptar a $petName. ¿Me podrías dar más información?'
+        : 'Hola, me gustaría obtener información sobre sus mascotas disponibles.';
+
     await sendMessage(
       conversationId: conversation.id,
       senderId: adoptantId,
-      content:
-          'Hola, estoy interesado en adoptar a $petName. ¿Me podrías dar más información?',
+      content: message,
     );
 
     return conversation;
   }
 
-  // Obtener conversaciones del adoptante
   Future<List<Conversation>> getAdoptantConversations(String adoptantId) async {
     final response = await _client
         .from('conversations')
@@ -63,7 +106,6 @@ class ChatRepository {
     return (response as List).map((e) => Conversation.fromMap(e)).toList();
   }
 
-  // Obtener conversaciones del refugio
   Future<List<Conversation>> getShelterConversations(String shelterId) async {
     final response = await _client
         .from('conversations')
@@ -76,7 +118,6 @@ class ChatRepository {
     return (response as List).map((e) => Conversation.fromMap(e)).toList();
   }
 
-  // Obtener mensajes de una conversación
   Future<List<Message>> getMessages(String conversationId) async {
     final response = await _client
         .from('messages')
@@ -87,7 +128,6 @@ class ChatRepository {
     return (response as List).map((e) => Message.fromMap(e)).toList();
   }
 
-  // Enviar mensaje
   Future<Message> sendMessage({
     required String conversationId,
     required String senderId,
@@ -103,7 +143,6 @@ class ChatRepository {
         .select()
         .single();
 
-    // Actualizar último mensaje en la conversación
     await _client
         .from('conversations')
         .update({
@@ -115,7 +154,6 @@ class ChatRepository {
     return Message.fromMap(response);
   }
 
-  // Stream de mensajes en tiempo real
   Stream<List<Message>> messagesStream(String conversationId) {
     return _client
         .from('messages')
@@ -125,7 +163,6 @@ class ChatRepository {
         .map((list) => list.map((e) => Message.fromMap(e)).toList());
   }
 
-  // Marcar mensajes como leídos
   Future<void> markAsRead({
     required String conversationId,
     required String userId,
@@ -135,6 +172,21 @@ class ChatRepository {
         .update({'is_read': true})
         .eq('conversation_id', conversationId)
         .neq('sender_id', userId);
+  }
+
+  Future<Conversation> getConversationById(String conversationId) async {
+    final response = await _client
+        .from('conversations')
+        .select('''
+          *,
+          shelters(name, avatar_url),
+          profiles(full_name, avatar_url),
+          pets(name, main_photo_url)
+        ''')
+        .eq('id', conversationId)
+        .single();
+
+    return Conversation.fromMap(response);
   }
 }
 

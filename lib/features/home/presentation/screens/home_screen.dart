@@ -4,15 +4,17 @@ import 'home_tab.dart';
 import 'shelters_tab.dart';
 import 'messages_tab.dart';
 import 'profile_tab.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../chat/presentation/controllers/chat_controller.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
 
   void _goToShelters() {
@@ -32,7 +34,12 @@ class _HomeScreenState extends State<HomeScreen> {
       body: tabs[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) {
+          if (index == 2) {
+            ref.invalidate(adoptantConversationsProvider);
+          }
+          setState(() => _currentIndex = index);
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
