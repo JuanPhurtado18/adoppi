@@ -7,6 +7,9 @@ import '../../../shelter_panel/domain/pet.dart';
 import '../widgets/info_chip.dart';
 import '../widgets/shelter_mini_card.dart';
 import 'shelter_detail_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../chat/data/chat_repository.dart';
+import '../../../chat/presentation/screens/chat_screen.dart';
 
 class PetDetailScreen extends ConsumerWidget {
   final String petId;
@@ -365,18 +368,49 @@ class _PetDetailContent extends ConsumerWidget {
 
                   const SizedBox(height: 32),
 
-                  // Botón I'm interested
                   ElevatedButton(
                     onPressed: pet.adoptionStatus == 'disponible'
-                        ? () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Próximamente podrás enviar tu solicitud',
-                                ),
-                                backgroundColor: AppColors.primary,
-                              ),
-                            );
+                        ? () async {
+                            final user =
+                                Supabase.instance.client.auth.currentUser;
+                            if (user == null) return;
+
+                            final shelter = ref
+                                .read(shelterByIdProvider(pet.shelterId))
+                                .value;
+                            if (shelter == null) return;
+
+                            try {
+                              final conversation = await ref
+                                  .read(chatRepositoryProvider)
+                                  .getOrCreateConversation(
+                                    adoptantId: user.id,
+                                    shelterId: pet.shelterId,
+                                    petId: pet.id,
+                                    petName: pet.name,
+                                  );
+
+                              if (context.mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ChatScreen(
+                                      conversation: conversation,
+                                      isShelter: false,
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Error al abrir el chat'),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                              }
+                            }
                           }
                         : null,
                     child: const Text("I'm Interested"),

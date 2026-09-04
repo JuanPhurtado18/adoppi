@@ -5,6 +5,7 @@ import '../controllers/shelter_controller.dart';
 import 'pets_tab.dart';
 import 'requests_tab.dart';
 import 'profile_tab.dart';
+import '../../../../features/chat/presentation/screens/conversations_screen.dart';
 
 class ShelterPanelScreen extends ConsumerStatefulWidget {
   const ShelterPanelScreen({super.key});
@@ -34,10 +35,11 @@ class _ShelterPanelScreenState extends ConsumerState<ShelterPanelScreen> {
     final tabs = [
       PetsTab(shelterId: shelterId),
       RequestsTab(shelterId: shelterId),
+      ConversationsScreen(isShelter: true, shelterId: shelterId),
       const ProfileTab(),
     ];
 
-    final titles = ['Mis Mascotas', 'Solicitudes', 'Mi Refugio'];
+    final titles = ['Mis Mascotas', 'Solicitudes', 'Mensajes', 'Mi Refugio'];
 
     return Scaffold(
       appBar: AppBar(
@@ -63,13 +65,14 @@ class _ShelterPanelScreenState extends ConsumerState<ShelterPanelScreen> {
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.pets),
-            label: 'Mascotas',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.pets), label: 'Mascotas'),
           BottomNavigationBarItem(
             icon: Icon(Icons.favorite_border),
             label: 'Solicitudes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            label: 'Mensajes',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),

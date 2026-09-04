@@ -7,6 +7,9 @@ import '../../../shelter_panel/domain/shelter.dart';
 import '../../../shelter_panel/domain/pet.dart';
 import '../../../home/presentation/widgets/pet_card_home.dart';
 import 'pet_detail_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../chat/data/chat_repository.dart';
+import '../../../chat/presentation/screens/chat_screen.dart';
 
 class ShelterDetailScreen extends ConsumerWidget {
   final String shelterId;
@@ -148,13 +151,47 @@ class ShelterDetailScreen extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Próximamente'),
-                                  backgroundColor: AppColors.primary,
-                                ),
-                              );
+                            onPressed: () async {
+                              final user =
+                                  Supabase.instance.client.auth.currentUser;
+                              if (user == null) return;
+
+                              final shelter = ref
+                                  .read(shelterByIdProvider(shelterId))
+                                  .value;
+                              if (shelter == null) return;
+
+                              try {
+                                final conversation = await ref
+                                    .read(chatRepositoryProvider)
+                                    .getOrCreateConversation(
+                                      adoptantId: user.id,
+                                      shelterId: shelterId,
+                                      petId: '',
+                                      petName: 'una mascota',
+                                    );
+
+                                if (context.mounted) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ChatScreen(
+                                        conversation: conversation,
+                                        isShelter: false,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Error al abrir el chat'),
+                                      backgroundColor: AppColors.error,
+                                    ),
+                                  );
+                                }
+                              }
                             },
                             icon: const Icon(
                               Icons.chat_bubble_outline,
