@@ -15,7 +15,6 @@ class ChatRepository {
     String? petId,
     required String petName,
   }) async {
-    // Buscar cualquier conversación existente con este refugio
     final existingList = await _client
         .from('conversations')
         .select('*, shelters(name, avatar_url), pets(name, main_photo_url)')
@@ -27,8 +26,6 @@ class ChatRepository {
     if ((existingList as List).isNotEmpty) {
       final existing = Conversation.fromMap(existingList.first);
 
-      // Si viene desde una mascota específica, siempre enviar el mensaje
-      // de interés aunque la conversación ya exista
       if (petId != null) {
         if (existing.petId == null) {
           await _client
@@ -37,7 +34,6 @@ class ChatRepository {
               .eq('id', existing.id);
         }
 
-        // Verificar si ya se envió un mensaje de interés por esta mascota
         final existingMessage = await _client
             .from('messages')
             .select()
@@ -64,11 +60,9 @@ class ChatRepository {
         return Conversation.fromMap(updated);
       }
 
-      // Si viene desde contactar refugio sin mascota, solo abrir la conversación
       return existing;
     }
 
-    // No existe ninguna conversación, crear una nueva
     final insertData = {
       'adoptant_id': adoptantId,
       'shelter_id': shelterId,
@@ -109,13 +103,25 @@ class ChatRepository {
   Future<List<Conversation>> getShelterConversations(String shelterId) async {
     final response = await _client
         .from('conversations')
-        .select(
-          '*, profiles(full_name, avatar_url), pets(name, main_photo_url)',
-        )
+        .select('*, shelters(name, avatar_url), pets(name, main_photo_url)')
         .eq('shelter_id', shelterId)
         .order('last_message_at', ascending: false);
 
-    return (response as List).map((e) => Conversation.fromMap(e)).toList();
+    final conversations = await Future.wait(
+      (response as List).map((conv) async {
+        final adoptantProfile = await _client
+            .from('profiles')
+            .select('full_name, avatar_url')
+            .eq('id', conv['adoptant_id'])
+            .maybeSingle();
+
+        final enriched = Map<String, dynamic>.from(conv);
+        enriched['profiles'] = adoptantProfile;
+        return enriched;
+      }),
+    );
+
+    return conversations.map((e) => Conversation.fromMap(e)).toList();
   }
 
   Future<List<Message>> getMessages(String conversationId) async {
@@ -177,16 +183,20 @@ class ChatRepository {
   Future<Conversation> getConversationById(String conversationId) async {
     final response = await _client
         .from('conversations')
-        .select('''
-          *,
-          shelters(name, avatar_url),
-          profiles(full_name, avatar_url),
-          pets(name, main_photo_url)
-        ''')
+        .select('*, shelters(name, avatar_url), pets(name, main_photo_url)')
         .eq('id', conversationId)
         .single();
 
-    return Conversation.fromMap(response);
+    final adoptantProfile = await _client
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', response['adoptant_id'])
+        .maybeSingle();
+
+    final enriched = Map<String, dynamic>.from(response);
+    enriched['profiles'] = adoptantProfile;
+
+    return Conversation.fromMap(enriched);
   }
 }
 

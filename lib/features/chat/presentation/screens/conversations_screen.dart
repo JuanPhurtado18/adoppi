@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/chat_controller.dart';
+import '../../data/chat_repository.dart';
 import '../../domain/conversation.dart';
 import 'chat_screen.dart';
 
@@ -61,10 +61,10 @@ class ConversationsScreen extends ConsumerWidget {
               error: (e, _) =>
                   const Center(child: Text('Error al cargar conversaciones')),
               data: (conversations) => conversations.isEmpty
-                  ? Center(
+                  ? const Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
+                        children: [
                           Icon(
                             Icons.chat_bubble_outline,
                             size: 64,
@@ -99,26 +99,8 @@ class ConversationsScreen extends ConsumerWidget {
                           return _ConversationTile(
                             conversation: conv,
                             isShelter: isShelter,
+                            shelterId: shelterId,
                             timeLabel: _timeLabel(conv.lastMessageAt),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ChatScreen(
-                                    conversation: conv,
-                                    isShelter: isShelter,
-                                  ),
-                                ),
-                              ).then((_) {
-                                if (isShelter && shelterId != null) {
-                                  ref.invalidate(
-                                    shelterConversationsProvider(shelterId!),
-                                  );
-                                } else {
-                                  ref.invalidate(adoptantConversationsProvider);
-                                }
-                              });
-                            },
                           );
                         },
                       ),
@@ -131,21 +113,21 @@ class ConversationsScreen extends ConsumerWidget {
   }
 }
 
-class _ConversationTile extends StatelessWidget {
+class _ConversationTile extends ConsumerWidget {
   final Conversation conversation;
   final bool isShelter;
+  final String? shelterId;
   final String timeLabel;
-  final VoidCallback onTap;
 
   const _ConversationTile({
     required this.conversation,
     required this.isShelter,
+    this.shelterId,
     required this.timeLabel,
-    required this.onTap,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final shelterAvatar = conversation.shelterInfo?['avatar_url'] as String?;
     final adoptantAvatar = conversation.adoptantInfo?['avatar_url'] as String?;
     final avatarUrl = isShelter ? adoptantAvatar : shelterAvatar;
@@ -161,7 +143,29 @@ class _ConversationTile extends StatelessWidget {
     return Column(
       children: [
         ListTile(
-          onTap: onTap,
+          onTap: () async {
+            final fullConversation = await ref
+                .read(chatRepositoryProvider)
+                .getConversationById(conversation.id);
+
+            if (context.mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChatScreen(
+                    conversation: fullConversation,
+                    isShelter: isShelter,
+                  ),
+                ),
+              ).then((_) {
+                if (isShelter && shelterId != null) {
+                  ref.invalidate(shelterConversationsProvider(shelterId!));
+                } else {
+                  ref.invalidate(adoptantConversationsProvider);
+                }
+              });
+            }
+          },
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 8,

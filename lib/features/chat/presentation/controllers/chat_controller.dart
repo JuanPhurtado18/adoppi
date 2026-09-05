@@ -19,6 +19,13 @@ final shelterConversationsProvider =
       return repo.getShelterConversations(shelterId);
     });
 
+final conversationByIdProvider = FutureProvider.family<Conversation, String>((
+  ref,
+  conversationId,
+) async {
+  return ref.watch(chatRepositoryProvider).getConversationById(conversationId);
+});
+
 final messagesStreamProvider = StreamProvider.family<List<Message>, String>((
   ref,
   conversationId,
