@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/services/geocoding_service.dart';
 
 class AuthRepository {
   final SupabaseClient _client;
@@ -92,6 +93,19 @@ class AuthRepository {
       'email': email,
       'avatar_url': avatarUrl,
     });
+
+    // Geolocalizar la dirección del refugio
+    final fullAddress = '$address, $city, Colombia';
+    final coordinates = await GeocodingService.getCoordinates(fullAddress);
+    if (coordinates != null) {
+      await _client
+          .from('shelters')
+          .update({
+            'latitude': coordinates['latitude'],
+            'longitude': coordinates['longitude'],
+          })
+          .eq('user_id', userId);
+    }
   }
 
   Future<void> signOut() async {

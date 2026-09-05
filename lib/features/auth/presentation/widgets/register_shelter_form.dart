@@ -181,7 +181,10 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
             controller: _addressController,
             decoration: const InputDecoration(
               labelText: 'Dirección *',
-              hintText: 'Calle 5 #40-45',
+              hintText: 'Ej: Calle 5 40-45',
+              helperText:
+                  'Escribe la dirección completa: Calle/Carrera Número, Ej: Carrera 56 134',
+              helperMaxLines: 2,
               prefixIcon: Icon(Icons.location_on_outlined),
             ),
             validator: (value) {

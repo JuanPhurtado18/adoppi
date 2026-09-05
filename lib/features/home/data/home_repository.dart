@@ -8,6 +8,17 @@ class HomeRepository {
 
   HomeRepository(this._client);
 
+  Future<List<Shelter>> getSheltersWithCoordinates() async {
+    final response = await _client
+        .from('shelters')
+        .select()
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null)
+        .order('created_at', ascending: false);
+
+    return (response as List).map((e) => Shelter.fromMap(e)).toList();
+  }
+
   // Obtener mascotas disponibles con filtros opcionales
   Future<List<Pet>> getPets({String? species, String? searchQuery}) async {
     var query = _client

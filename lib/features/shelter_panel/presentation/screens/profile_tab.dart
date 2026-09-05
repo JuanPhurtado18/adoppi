@@ -69,9 +69,11 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success
-              ? 'Foto actualizada exitosamente'
-              : 'Error al actualizar la foto'),
+          content: Text(
+            success
+                ? 'Foto actualizada exitosamente'
+                : 'Error al actualizar la foto',
+          ),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -90,16 +92,17 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
       return;
     }
 
-    final success =
-        await ref.read(shelterControllerProvider.notifier).updateShelter({
-      'name': name,
-      'description': _descriptionController.text.trim(),
-      'address': _addressController.text.trim(),
-      'city': _cityController.text.trim(),
-      'phone': _phoneController.text.trim(),
-      'email': _emailController.text.trim(),
-      'schedule': _scheduleController.text.trim(),
-    });
+    final success = await ref
+        .read(shelterControllerProvider.notifier)
+        .updateShelter({
+          'name': name,
+          'description': _descriptionController.text.trim(),
+          'address': _addressController.text.trim(),
+          'city': _cityController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'email': _emailController.text.trim(),
+          'schedule': _scheduleController.text.trim(),
+        });
 
     if (mounted) {
       if (success) {
@@ -110,9 +113,11 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success
-              ? 'Perfil actualizado exitosamente'
-              : 'Error al actualizar el perfil'),
+          content: Text(
+            success
+                ? 'Perfil actualizado exitosamente'
+                : 'Error al actualizar el perfil',
+          ),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -131,7 +136,8 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
 
     if (shelterState.isLoading && shelter == null) {
       return const Center(
-          child: CircularProgressIndicator(color: AppColors.primary));
+        child: CircularProgressIndicator(color: AppColors.primary),
+      );
     }
 
     if (shelter == null) {
@@ -154,8 +160,11 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                     ? NetworkImage(shelter.avatarUrl!)
                     : null,
                 child: shelter.avatarUrl == null
-                    ? const Icon(Icons.home,
-                        size: 40, color: AppColors.textHint)
+                    ? const Icon(
+                        Icons.home,
+                        size: 40,
+                        color: AppColors.textHint,
+                      )
                     : null,
               ),
               Positioned(
@@ -171,8 +180,11 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
-                    child: const Icon(Icons.camera_alt,
-                        color: Colors.white, size: 16),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ),
               ),
@@ -212,13 +224,11 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                           setState(() => _isEditing = true);
                         }
                       },
-                icon: Icon(_isEditing
-                    ? Icons.save_outlined
-                    : Icons.edit_outlined),
-                label: Text(_isEditing ? 'Guardar' : 'Editar'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(0, 40),
+                icon: Icon(
+                  _isEditing ? Icons.save_outlined : Icons.edit_outlined,
                 ),
+                label: Text(_isEditing ? 'Guardar' : 'Editar'),
+                style: ElevatedButton.styleFrom(minimumSize: const Size(0, 40)),
               ),
             ],
           ),
@@ -238,12 +248,19 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
             icon: Icons.description_outlined,
             maxLines: 3,
           ),
-          _InfoField(
+
+          // Dirección con helper text
+          _InfoFieldWithHelper(
             label: 'Dirección',
             controller: _addressController,
             enabled: _isEditing,
             icon: Icons.location_on_outlined,
+            hintText: 'Ej: Carrera 56 134',
+            helperText: _isEditing
+                ? 'Formato: Calle/Carrera Número, Ej: Carrera 56 Oeste 134'
+                : null,
           ),
+
           _InfoField(
             label: 'Ciudad',
             controller: _cityController,
@@ -321,6 +338,50 @@ class _InfoField extends StatelessWidget {
         decoration: InputDecoration(
           labelText: label,
           hintText: hintText,
+          prefixIcon: Icon(icon),
+          filled: true,
+          fillColor: enabled ? Colors.white : AppColors.background,
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoFieldWithHelper extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final bool enabled;
+  final IconData icon;
+  final int maxLines;
+  final TextInputType keyboardType;
+  final String? hintText;
+  final String? helperText;
+
+  const _InfoFieldWithHelper({
+    required this.label,
+    required this.controller,
+    required this.enabled,
+    required this.icon,
+    this.maxLines = 1,
+    this.keyboardType = TextInputType.text,
+    this.hintText,
+    this.helperText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: controller,
+        enabled: enabled,
+        maxLines: maxLines,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hintText,
+          helperText: helperText,
+          helperMaxLines: 2,
           prefixIcon: Icon(icon),
           filled: true,
           fillColor: enabled ? Colors.white : AppColors.background,

@@ -8,11 +8,7 @@ class ShelterState {
   final bool isLoading;
   final String? errorMessage;
 
-  const ShelterState({
-    this.shelter,
-    this.isLoading = false,
-    this.errorMessage,
-  });
+  const ShelterState({this.shelter, this.isLoading = false, this.errorMessage});
 
   ShelterState copyWith({
     Shelter? shelter,
@@ -51,10 +47,22 @@ class ShelterController extends StateNotifier<ShelterState> {
     if (state.shelter == null) return false;
     state = state.copyWith(isLoading: true);
     try {
-      await _repository.updateShelter(
-        shelterId: state.shelter!.id,
-        data: data,
-      );
+      await _repository.updateShelter(shelterId: state.shelter!.id, data: data);
+
+      // Geolocalizar si hay dirección
+      final address = data['address'] as String?;
+      final city = data['city'] as String?;
+      if (address != null &&
+          address.isNotEmpty &&
+          city != null &&
+          city.isNotEmpty) {
+        await _repository.geocodeAndUpdateShelter(
+          shelterId: state.shelter!.id,
+          address: address,
+          city: city,
+        );
+      }
+
       await loadShelter();
       return true;
     } catch (e) {
@@ -90,5 +98,5 @@ class ShelterController extends StateNotifier<ShelterState> {
 
 final shelterControllerProvider =
     StateNotifierProvider<ShelterController, ShelterState>((ref) {
-  return ShelterController(ref.watch(shelterRepositoryProvider));
-});
+      return ShelterController(ref.watch(shelterRepositoryProvider));
+    });

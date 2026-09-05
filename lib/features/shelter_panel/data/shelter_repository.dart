@@ -3,11 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/shelter.dart';
 import '../domain/pet.dart';
+import '../../../shared/services/geocoding_service.dart';
 
 class ShelterRepository {
   final SupabaseClient _client;
 
   ShelterRepository(this._client);
+  Future<void> geocodeAndUpdateShelter({
+    required String shelterId,
+    required String address,
+    required String city,
+  }) async {
+    final fullAddress = '$address, $city, Colombia';
+    final coordinates = await GeocodingService.getCoordinates(fullAddress);
+
+    if (coordinates != null) {
+      await _client
+          .from('shelters')
+          .update({
+            'latitude': coordinates['latitude'],
+            'longitude': coordinates['longitude'],
+          })
+          .eq('id', shelterId);
+    }
+  }
 
   // Obtener refugio del usuario actual
   Future<Shelter?> getCurrentShelter() async {
