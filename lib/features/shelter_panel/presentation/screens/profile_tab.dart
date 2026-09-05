@@ -126,7 +126,10 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
 
   Future<void> _signOut() async {
     await Supabase.instance.client.auth.signOut();
-    if (mounted) context.go(AppRoutes.login);
+    if (mounted) {
+      ref.invalidate(shelterControllerProvider);
+      context.go(AppRoutes.login);
+    }
   }
 
   @override
