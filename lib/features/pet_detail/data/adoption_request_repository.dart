@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/services/notification_service.dart';
 
 class AdoptionRequestRepository {
   final SupabaseClient _client;
@@ -41,6 +42,19 @@ class AdoptionRequestRepository {
         .from('pets')
         .update({'adoption_status': 'en_proceso'})
         .eq('id', petId);
+    // Obtener user_id del refugio
+    final shelterData = await _client
+        .from('shelters')
+        .select('user_id, name')
+        .eq('id', shelterId)
+        .single();
+
+    await NotificationService.sendNotification(
+      userId: shelterData['user_id'],
+      title: 'Nueva solicitud de adopción',
+      body: 'Alguien está interesado en adoptar una de tus mascotas',
+      data: {'type': 'solicitud_recibida', 'reference_id': petId},
+    );
   }
 
   // Aprobar solicitud
@@ -73,6 +87,21 @@ class AdoptionRequestRepository {
         .eq('pet_id', petId)
         .neq('id', requestId)
         .eq('status', 'pendiente');
+    // Obtener adoptant_id de la solicitud
+    final request = await _client
+        .from('adoption_requests')
+        .select('adoptant_id, pets(name)')
+        .eq('id', requestId)
+        .single();
+
+    final petName = (request['pets'] as Map)['name'];
+
+    await NotificationService.sendNotification(
+      userId: request['adoptant_id'],
+      title: '¡Solicitud aprobada! 🎉',
+      body: 'Tu solicitud para adoptar a $petName fue aprobada',
+      data: {'type': 'solicitud_aprobada', 'reference_id': requestId},
+    );
   }
 
   // Rechazar solicitud
@@ -102,6 +131,23 @@ class AdoptionRequestRepository {
           .update({'adoption_status': 'disponible'})
           .eq('id', petId);
     }
+    final request = await _client
+    .from('adoption_requests')
+    .select('adoptant_id, pets(name)')
+    .eq('id', requestId)
+    .single();
+
+final petName = (request['pets'] as Map)['name'];
+
+await NotificationService.sendNotification(
+  userId: request['adoptant_id'],
+  title: 'Solicitud de adopción',
+  body: 'Tu solicitud para adoptar a $petName no fue aprobada',
+  data: {
+    'type': 'solicitud_aprobada',
+    'reference_id': requestId,
+  },
+);
   }
 
   // Obtener solicitudes del refugio con info del adoptante y mascota

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../domain/conversation.dart';
 import '../domain/message.dart';
+import '../../../shared/services/notification_service.dart';
 
 class ChatRepository {
   final SupabaseClient _client;
@@ -156,6 +157,28 @@ class ChatRepository {
           'last_message_at': DateTime.now().toIso8601String(),
         })
         .eq('id', conversationId);
+    // Obtener el otro participante de la conversación
+    final conv = await _client
+        .from('conversations')
+        .select('adoptant_id, shelter_id, shelters(user_id)')
+        .eq('id', conversationId)
+        .single();
+
+    final currentUserId = _client.auth.currentUser?.id;
+    String recipientId;
+
+    if (conv['adoptant_id'] == currentUserId) {
+      recipientId = (conv['shelters'] as Map)['user_id'];
+    } else {
+      recipientId = conv['adoptant_id'];
+    }
+
+    await NotificationService.sendNotification(
+      userId: recipientId,
+      title: 'Nuevo mensaje',
+      body: content.length > 50 ? '${content.substring(0, 50)}...' : content,
+      data: {'type': 'nuevo_mensaje', 'reference_id': conversationId},
+    );
 
     return Message.fromMap(response);
   }
