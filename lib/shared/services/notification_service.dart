@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 class NotificationService {
   static final _client = Supabase.instance.client;
@@ -10,18 +11,21 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     try {
-      // Obtener token FCM del usuario
       final profile = await _client
           .from('profiles')
           .select('fcm_token')
           .eq('id', userId)
           .maybeSingle();
 
-      final token = profile?['fcm_token'] as String?;
-      if (token == null) return;
+      debugPrint('DEBUG notification profile: $profile');
 
-      // Llamar a la Edge Function
-      await _client.functions.invoke(
+      final token = profile?['fcm_token'] as String?;
+      if (token == null) {
+        debugPrint('DEBUG notification: token is null for userId $userId');
+        return;
+      }
+
+      final result = await _client.functions.invoke(
         'send-notification',
         body: {
           'token': token,
@@ -31,7 +35,8 @@ class NotificationService {
         },
       );
 
-      // Guardar notificación en la base de datos
+      debugPrint('DEBUG notification function result: ${result.data}');
+
       await _client.from('notifications').insert({
         'user_id': userId,
         'title': title,
@@ -39,8 +44,10 @@ class NotificationService {
         'type': data?['type'] ?? 'nuevo_mensaje',
         'reference_id': data?['reference_id'],
       });
+
+      debugPrint('DEBUG notification inserted successfully');
     } catch (e) {
-      // Silencioso si falla
+      debugPrint('DEBUG notification error: $e');
     }
   }
 }
