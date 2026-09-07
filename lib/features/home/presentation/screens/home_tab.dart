@@ -6,6 +6,7 @@ import '../widgets/pet_card_home.dart';
 import '../widgets/shelter_card_home.dart';
 import '../../../pet_detail/presentation/screens/pet_detail_screen.dart';
 import '../../../pet_detail/presentation/screens/shelter_detail_screen.dart';
+import '../../../notifications/presentation/notification_bell.dart';
 
 class HomeTab extends ConsumerStatefulWidget {
   final VoidCallback onSeeAllShelters;
@@ -74,7 +75,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                           ],
                         ),
                       ),
-                      const Icon(Icons.favorite, color: Colors.white, size: 28),
+                      NotificationBell(iconColor: Colors.white),
                     ],
                   ),
                   const SizedBox(height: 16),

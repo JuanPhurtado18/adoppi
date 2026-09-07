@@ -6,6 +6,7 @@ import 'pets_tab.dart';
 import 'requests_tab.dart';
 import 'profile_tab.dart';
 import '../../../../features/chat/presentation/screens/conversations_screen.dart';
+import '../../../../features/notifications/presentation/notification_bell.dart';
 
 class ShelterPanelScreen extends ConsumerStatefulWidget {
   const ShelterPanelScreen({super.key});
@@ -47,10 +48,10 @@ class _ShelterPanelScreenState extends ConsumerState<ShelterPanelScreen> {
         actions: [
           if (_currentIndex == 0 && shelter != null)
             Padding(
-              padding: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.only(right: 8),
               child: Center(
                 child: Text(
-                  '${shelterState.shelter?.name ?? ''}',
+                  shelterState.shelter?.name ?? '',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -58,6 +59,10 @@ class _ShelterPanelScreenState extends ConsumerState<ShelterPanelScreen> {
                 ),
               ),
             ),
+          const Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: NotificationBell(),
+          ),
         ],
       ),
       body: tabs[_currentIndex],
