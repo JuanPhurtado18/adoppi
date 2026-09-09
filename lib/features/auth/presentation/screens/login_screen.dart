@@ -34,7 +34,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submitLogin() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref.read(authControllerProvider.notifier).signIn(
+    await ref
+        .read(authControllerProvider.notifier)
+        .signIn(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
@@ -54,8 +56,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     ref.listen<AuthState>(authControllerProvider, (previous, next) {
       if (next.isSuccess) {
-        final user =
-            supabase.Supabase.instance.client.auth.currentUser;
+        final user = supabase.Supabase.instance.client.auth.currentUser;
         final role = user?.userMetadata?['role'] as String?;
         if (role == 'refugio') {
           context.go(AppRoutes.shelterPanel);
@@ -111,9 +112,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Text(
                 'Adoppi',
                 style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -245,17 +246,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           const SizedBox(height: 16),
           TextButton(
-            onPressed: () {},
+            onPressed: () => context.push(AppRoutes.forgotPassword),
             child: const Text('¿Olvidaste tu contraseña?'),
           ),
           GestureDetector(
             onTap: () => TermsModal.show(context),
             child: const Text(
               'Ver Términos y Condiciones',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
           ),
           const SizedBox(height: 8),
@@ -281,10 +279,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 8),
           const Text(
             'Selecciona tu perfil para continuar',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
           _RoleCard(

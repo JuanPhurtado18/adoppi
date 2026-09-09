@@ -6,6 +6,12 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/shelter_panel/presentation/screens/shelter_panel_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../../features/auth/presentation/screens/verify_otp_screen.dart';
+import '../../features/auth/presentation/screens/new_password_screen.dart';
+
+// Flag global para saber si estamos en flujo de recuperación de contraseña
+final passwordRecoveryModeProvider = StateProvider<bool>((ref) => false);
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -13,10 +19,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) async {
       final session = Supabase.instance.client.auth.currentSession;
       final isAuthenticated = session != null;
+      final isRecoveryMode = ref.read(passwordRecoveryModeProvider);
+
+      // Si está en modo recuperación, permitir newPassword sin redirigir
+      if (isRecoveryMode && state.matchedLocation == AppRoutes.newPassword) {
+        return null;
+      }
+
       final isAuthRoute =
           state.matchedLocation == AppRoutes.login ||
           state.matchedLocation == AppRoutes.register ||
-          state.matchedLocation == AppRoutes.forgotPassword;
+          state.matchedLocation == AppRoutes.forgotPassword ||
+          state.matchedLocation == AppRoutes.verifyOtp ||
+          state.matchedLocation == AppRoutes.newPassword;
 
       if (!isAuthenticated && !isAuthRoute) {
         if (state.matchedLocation != AppRoutes.splash) {
@@ -24,7 +39,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         }
       }
 
-      if (isAuthenticated && isAuthRoute) {
+      if (isAuthenticated && isAuthRoute && !isRecoveryMode) {
         final role = session.user.userMetadata?['role'] as String?;
         if (role == 'refugio') return AppRoutes.shelterPanel;
         return AppRoutes.home;
@@ -56,8 +71,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.forgotPassword,
         name: 'forgotPassword',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.verifyOtp,
+        name: 'verifyOtp',
         builder: (context, state) =>
-            const PlaceholderScreen(title: 'Recuperar contraseña'),
+            VerifyOtpScreen(email: state.extra as String),
+      ),
+      GoRoute(
+        path: AppRoutes.newPassword,
+        name: 'newPassword',
+        builder: (context, state) => const NewPasswordScreen(),
       ),
       GoRoute(
         path: AppRoutes.terms,
@@ -126,7 +151,6 @@ class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
-  static const String forgotPassword = '/forgot-password';
   static const String terms = '/terms';
   static const String home = '/home';
   static const String shelterPanel = '/shelter-panel';
@@ -137,6 +161,9 @@ class AppRoutes {
   static const String notifications = '/notifications';
   static const String profile = '/profile';
   static const String settings = '/settings';
+  static const String forgotPassword = '/forgot-password';
+  static const String verifyOtp = '/verify-otp';
+  static const String newPassword = '/new-password';
 }
 
 class PlaceholderScreen extends StatelessWidget {
