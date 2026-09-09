@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -35,11 +34,10 @@ final unreadCountProvider = StreamProvider<int>((ref) async* {
   }
 
   yield await getCount();
-  debugPrint('DEBUG badge initial count yielded');
 
   await for (final _ in Stream.periodic(const Duration(seconds: 3))) {
     final count = await getCount();
-    debugPrint('DEBUG badge periodic count: $count');
+
     yield count;
   }
 });
