@@ -135,7 +135,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(6, (index) {
                   return SizedBox(
-                    width: 48,
+                    width: 52,
                     height: 56,
                     child: TextFormField(
                       controller: _controllers[index],
@@ -148,6 +148,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                         counterText: '',
                         filled: true,
                         fillColor: Colors.white,
+                        contentPadding: EdgeInsets.zero,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
