@@ -47,6 +47,16 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
     _preferencesLoaded = true;
   }
 
+  Future<void> _openEditProfile(Map<String, dynamic>? profile) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditProfileModal(profile: profile),
+    );
+    ref.invalidate(adoptantProfileProvider);
+  }
+
   Future<void> _openPetPreferences() async {
     final current = ref.read(petPreferencesProvider);
     List<String> temp = List.from(current);
@@ -244,97 +254,126 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 48, 20, 32),
                   color: AppColors.primary,
-                  child: Column(
+                  child: Stack(
                     children: [
-                      // Foto de perfil
-                      Stack(
-                        children: [
-                          Container(
-                            width: 96,
-                            height: 96,
+                      // Botón editar en esquina superior derecha
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        child: GestureDetector(
+                          onTap: () => _openEditProfile(profile),
+                          child: Container(
+                            width: 36,
+                            height: 36,
                             decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
                               shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.3),
-                              border: Border.all(color: Colors.white, width: 3),
                             ),
-                            child: ClipOval(
-                              child: profile?['avatar_url'] != null
-                                  ? CachedNetworkImage(
-                                      imageUrl: profile!['avatar_url'],
-                                      fit: BoxFit.cover,
-                                      width: 96,
-                                      height: 96,
-                                      placeholder: (context, url) =>
-                                          const Center(
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                              strokeWidth: 2,
-                                            ),
-                                          ),
-                                      errorWidget: (context, url, error) =>
-                                          const Icon(
-                                            Icons.person,
-                                            size: 48,
-                                            color: Colors.white,
-                                          ),
-                                    )
-                                  : const Icon(
-                                      Icons.person,
-                                      size: 48,
-                                      color: Colors.white,
-                                    ),
+                            child: const Icon(
+                              Icons.edit_outlined,
+                              color: Colors.white,
+                              size: 18,
                             ),
                           ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.primary,
-                                  width: 2,
+                        ),
+                      ),
+                      // Contenido del header centrado
+                      Column(
+                        children: [
+                          Stack(
+                            children: [
+                              Container(
+                                width: 96,
+                                height: 96,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.white.withOpacity(0.3),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 3,
+                                  ),
+                                ),
+                                child: ClipOval(
+                                  child: profile?['avatar_url'] != null
+                                      ? CachedNetworkImage(
+                                          imageUrl: profile!['avatar_url'],
+                                          fit: BoxFit.cover,
+                                          width: 96,
+                                          height: 96,
+                                          placeholder: (context, url) =>
+                                              const Center(
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      color: Colors.white,
+                                                      strokeWidth: 2,
+                                                    ),
+                                              ),
+                                          errorWidget: (context, url, error) =>
+                                              const Icon(
+                                                Icons.person,
+                                                size: 48,
+                                                color: Colors.white,
+                                              ),
+                                        )
+                                      : const Icon(
+                                          Icons.person,
+                                          size: 48,
+                                          color: Colors.white,
+                                        ),
                                 ),
                               ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: AppColors.primary,
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.primary,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    color: AppColors.primary,
+                                    size: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '${profile?['full_name'] ?? ''} ${profile?['last_name'] ?? ''}'
+                                .trim(),
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.email_outlined,
+                                color: Colors.white.withOpacity(0.8),
                                 size: 14,
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '${profile?['full_name'] ?? ''} ${profile?['last_name'] ?? ''}'
-                            .trim(),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.email_outlined,
-                            color: Colors.white.withOpacity(0.8),
-                            size: 14,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            user?.email ?? '',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
+                              const SizedBox(width: 4),
+                              Text(
+                                user?.email ?? '',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -611,6 +650,229 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
     );
   }
 }
+
+// ── Modal de edición de perfil ─────────────────────────────────────────────
+
+class _EditProfileModal extends ConsumerStatefulWidget {
+  final Map<String, dynamic>? profile;
+
+  const _EditProfileModal({required this.profile});
+
+  @override
+  ConsumerState<_EditProfileModal> createState() => _EditProfileModalState();
+}
+
+class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _fullNameController;
+  late final TextEditingController _lastNameController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _cityController;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fullNameController = TextEditingController(
+      text: widget.profile?['full_name'] ?? '',
+    );
+    _lastNameController = TextEditingController(
+      text: widget.profile?['last_name'] ?? '',
+    );
+    _phoneController = TextEditingController(
+      text: widget.profile?['phone'] ?? '',
+    );
+    _cityController = TextEditingController(
+      text: widget.profile?['city'] ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _lastNameController.dispose();
+    _phoneController.dispose();
+    _cityController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      await Supabase.instance.client
+          .from('profiles')
+          .update({
+            'full_name': _fullNameController.text.trim(),
+            'last_name': _lastNameController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'city': _cityController.text.trim(),
+          })
+          .eq('id', userId);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Perfil actualizado'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al guardar los cambios'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + bottomInset),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Título
+            Row(
+              children: [
+                const Text(
+                  'Editar perfil',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const Divider(),
+            const SizedBox(height: 12),
+            // Campos
+            _ProfileField(
+              controller: _fullNameController,
+              label: 'Nombre',
+              icon: Icons.person_outline,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
+            ),
+            const SizedBox(height: 12),
+            _ProfileField(
+              controller: _lastNameController,
+              label: 'Apellido',
+              icon: Icons.person_outline,
+            ),
+            const SizedBox(height: 12),
+            _ProfileField(
+              controller: _phoneController,
+              label: 'Teléfono',
+              icon: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 12),
+            _ProfileField(
+              controller: _cityController,
+              label: 'Ciudad',
+              icon: Icons.location_city_outlined,
+            ),
+            const SizedBox(height: 24),
+            // Botón guardar
+            ElevatedButton(
+              onPressed: _isSaving ? null : _save,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text('Guardar cambios'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final IconData icon;
+  final TextInputType keyboardType;
+  final String? Function(String?)? validator;
+
+  const _ProfileField({
+    required this.controller,
+    required this.label,
+    required this.icon,
+    this.keyboardType = TextInputType.text,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Widgets reutilizables ──────────────────────────────────────────────────
 
 class _PreferenceChip extends StatelessWidget {
   final String label;
