@@ -21,6 +21,7 @@ class ChatRepository {
         .select('*, shelters(name, avatar_url), pets(name, main_photo_url)')
         .eq('adoptant_id', adoptantId)
         .eq('shelter_id', shelterId)
+        .eq('deleted_by_adoptant', false)
         .order('created_at', ascending: false)
         .limit(1);
 
@@ -96,6 +97,7 @@ class ChatRepository {
         .from('conversations')
         .select('*, shelters(name, avatar_url), pets(name, main_photo_url)')
         .eq('adoptant_id', adoptantId)
+        .eq('deleted_by_adoptant', false)
         .order('last_message_at', ascending: false);
 
     return (response as List).map((e) => Conversation.fromMap(e)).toList();
@@ -106,6 +108,7 @@ class ChatRepository {
         .from('conversations')
         .select('*, shelters(name, avatar_url), pets(name, main_photo_url)')
         .eq('shelter_id', shelterId)
+        .eq('deleted_by_shelter', false)
         .order('last_message_at', ascending: false);
 
     final conversations = await Future.wait(
@@ -157,7 +160,7 @@ class ChatRepository {
           'last_message_at': DateTime.now().toIso8601String(),
         })
         .eq('id', conversationId);
-    // Obtener el otro participante de la conversación
+
     final conv = await _client
         .from('conversations')
         .select('adoptant_id, shelter_id, shelters(user_id)')
@@ -220,6 +223,35 @@ class ChatRepository {
     enriched['profiles'] = adoptantProfile;
 
     return Conversation.fromMap(enriched);
+  }
+
+  Future<void> softDeleteConversation({
+    required String conversationId,
+    required bool isShelter,
+  }) async {
+    final field = isShelter ? 'deleted_by_shelter' : 'deleted_by_adoptant';
+    await _client
+        .from('conversations')
+        .update({field: true})
+        .eq('id', conversationId);
+  }
+
+  /// Cuando el adoptante envía un nuevo mensaje a una conversación que
+  /// había eliminado, se reactiva para él automáticamente.
+  Future<void> reactivateForAdoptant(String conversationId) async {
+    await _client
+        .from('conversations')
+        .update({'deleted_by_adoptant': false})
+        .eq('id', conversationId);
+  }
+
+  /// Cuando el refugio envía un nuevo mensaje a una conversación que
+  /// había eliminado, se reactiva para él automáticamente.
+  Future<void> reactivateForShelter(String conversationId) async {
+    await _client
+        .from('conversations')
+        .update({'deleted_by_shelter': false})
+        .eq('id', conversationId);
   }
 }
 

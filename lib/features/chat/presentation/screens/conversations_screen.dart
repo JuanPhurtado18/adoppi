@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/chat_controller.dart';
 import '../../data/chat_repository.dart';
@@ -33,41 +32,17 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
   }
 
   Future<void> _deleteConversation(Conversation conv) async {
-    print('🗑️ [DELETE] Iniciando eliminación de conversación: ${conv.id}');
     try {
-      print('🗑️ [DELETE] Eliminando mensajes de conversation_id: ${conv.id}');
-      final msgResult = await Supabase.instance.client
-          .from('messages')
-          .delete()
-          .eq('conversation_id', conv.id)
-          .select();
+      await ref
+          .read(chatRepositoryProvider)
+          .softDeleteConversation(
+            conversationId: conv.id,
+            isShelter: widget.isShelter,
+          );
 
-      print('🗑️ [DELETE] Mensajes eliminados: $msgResult');
-
-      print('🗑️ [DELETE] Eliminando conversación con id: ${conv.id}');
-      final convResult = await Supabase.instance.client
-          .from('conversations')
-          .delete()
-          .eq('id', conv.id)
-          .select();
-
-      print('🗑️ [DELETE] Resultado eliminación conversación: $convResult');
-
-      if (convResult.isEmpty) {
-        print(
-          '⚠️ [DELETE] ADVERTENCIA: La query no eliminó ninguna fila. '
-          '¿El id coincide? id usado: ${conv.id}',
-        );
-      }
-
-      print('🗑️ [DELETE] Invalidando providers...');
       if (widget.isShelter && widget.shelterId != null) {
-        print(
-          '🗑️ [DELETE] Invalidando shelterConversationsProvider(${widget.shelterId})',
-        );
         ref.invalidate(shelterConversationsProvider(widget.shelterId!));
       } else {
-        print('🗑️ [DELETE] Invalidando adoptantConversationsProvider');
         ref.invalidate(adoptantConversationsProvider);
       }
 
@@ -79,9 +54,7 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
           ),
         );
       }
-    } catch (e, stack) {
-      print('❌ [DELETE] ERROR al eliminar: $e');
-      print('❌ [DELETE] StackTrace: $stack');
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -94,13 +67,13 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
   }
 
   Future<bool> _confirmDelete() async {
-    print('❓ [CONFIRM] Mostrando diálogo de confirmación...');
     final result = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Eliminar conversación'),
         content: const Text(
-          '¿Estás seguro que quieres eliminar esta conversación? Se eliminarán todos los mensajes permanentemente.',
+          '¿Estás seguro que quieres eliminar esta conversación? '
+          'Solo se eliminará de tu lista.',
         ),
         actions: [
           TextButton(
@@ -115,7 +88,6 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
         ],
       ),
     );
-    print('❓ [CONFIRM] Resultado del diálogo: $result');
     return result ?? false;
   }
 
@@ -263,16 +235,9 @@ class _DismissibleListState extends State<_DismissibleList> {
           ),
           confirmDismiss: (direction) => widget.onConfirmDelete(),
           onDismissed: (direction) {
-            print('👆 [DISMISS] onDismissed llamado para conv.id: ${conv.id}');
-            print(
-              '👆 [DISMISS] Lista local antes: ${_localConversations.map((c) => c.id).toList()}',
-            );
             setState(() {
               _localConversations.removeAt(index);
             });
-            print(
-              '👆 [DISMISS] Lista local después: ${_localConversations.map((c) => c.id).toList()}',
-            );
             widget.onDelete(conv);
           },
           child: _ConversationTile(
