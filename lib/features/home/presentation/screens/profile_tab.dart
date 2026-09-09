@@ -256,7 +256,7 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                   color: AppColors.primary,
                   child: Stack(
                     children: [
-                      // Botón editar en esquina superior derecha
+                      // Botón editar esquina superior derecha
                       Positioned(
                         top: 0,
                         right: 0,
@@ -445,9 +445,9 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                 const SizedBox(height: 24),
 
                 // Settings
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: const Text(
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
                     'Settings',
                     style: TextStyle(
                       fontSize: 16,
@@ -555,7 +555,12 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                             color: AppColors.textHint,
                             size: 20,
                           ),
-                          onTap: () {},
+                          onTap: () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => const _PrivacySafetyModal(),
+                          ),
                         ),
                       ),
                       const Divider(height: 1),
@@ -572,7 +577,12 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                             color: AppColors.textHint,
                             size: 20,
                           ),
-                          onTap: () {},
+                          onTap: () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => const _HelpSupportModal(),
+                          ),
                         ),
                       ),
                     ],
@@ -651,7 +661,7 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
   }
 }
 
-// ── Modal de edición de perfil ─────────────────────────────────────────────
+// ── Modal edición de perfil ────────────────────────────────────────────────
 
 class _EditProfileModal extends ConsumerStatefulWidget {
   final Map<String, dynamic>? profile;
@@ -752,7 +762,6 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle
             Container(
               margin: const EdgeInsets.symmetric(vertical: 12),
               width: 40,
@@ -762,7 +771,6 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            // Título
             Row(
               children: [
                 const Text(
@@ -782,7 +790,6 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
             ),
             const Divider(),
             const SizedBox(height: 12),
-            // Campos
             _ProfileField(
               controller: _fullNameController,
               label: 'Nombre',
@@ -810,7 +817,6 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
               icon: Icons.location_city_outlined,
             ),
             const SizedBox(height: 24),
-            // Botón guardar
             ElevatedButton(
               onPressed: _isSaving ? null : _save,
               style: ElevatedButton.styleFrom(
@@ -866,6 +872,493 @@ class _ProfileField extends StatelessWidget {
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
+        ),
+      ),
+    );
+  }
+}
+
+// ── Modal Privacy & Safety ─────────────────────────────────────────────────
+
+class _PrivacySafetyModal extends StatelessWidget {
+  const _PrivacySafetyModal();
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.92,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
+              child: Row(
+                children: [
+                  const Text(
+                    'Privacy & Safety',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: ListView(
+                controller: controller,
+                padding: const EdgeInsets.all(20),
+                children: const [
+                  _PrivacySection(
+                    icon: Icons.storage_outlined,
+                    title: 'Uso de tus datos personales',
+                    content:
+                        'Adoppi recopila únicamente la información necesaria para '
+                        'brindarte una experiencia de adopción segura: nombre, correo '
+                        'electrónico, ciudad y preferencias de mascotas. Tus datos se '
+                        'almacenan de forma segura en servidores protegidos y nunca son '
+                        'vendidos a terceros.',
+                  ),
+                  SizedBox(height: 16),
+                  _PrivacySection(
+                    icon: Icons.share_outlined,
+                    title: 'Información compartida con refugios',
+                    content:
+                        'Cuando inicias una conversación con un refugio, este podrá ver '
+                        'tu nombre y los mensajes que envíes. No compartimos tu correo '
+                        'electrónico, número de teléfono ni ningún otro dato personal '
+                        'sin tu consentimiento explícito.',
+                  ),
+                  SizedBox(height: 16),
+                  _PrivacySection(
+                    icon: Icons.delete_outline,
+                    title: 'Eliminación de cuenta y datos',
+                    content:
+                        'Puedes solicitar la eliminación de tu cuenta y todos tus datos '
+                        'en cualquier momento escribiendo a adoppi0908@gmail.com. '
+                        'Una vez confirmada la solicitud, tus datos serán eliminados '
+                        'permanentemente en un plazo máximo de 7 días hábiles.',
+                  ),
+                  SizedBox(height: 16),
+                  _PrivacySection(
+                    icon: Icons.flag_outlined,
+                    title: 'Reportar refugio o usuario sospechoso',
+                    content:
+                        'Si identificas un refugio o usuario con comportamiento '
+                        'sospechoso, información falsa o actitud inapropiada, '
+                        'repórtalo de inmediato a adoppi0908@gmail.com con el asunto '
+                        '"Reporte de usuario". Nuestro equipo revisará el caso en '
+                        'menos de 48 horas.',
+                  ),
+                  SizedBox(height: 16),
+                  _PrivacySection(
+                    icon: Icons.lock_outline,
+                    title: 'Seguridad de tu cuenta',
+                    content:
+                        'Te recomendamos usar una contraseña única y segura para tu '
+                        'cuenta de Adoppi. Si sospechas que alguien accedió a tu cuenta '
+                        'sin autorización, cambia tu contraseña inmediatamente desde la '
+                        'pantalla de inicio de sesión usando "¿Olvidaste tu contraseña?" '
+                        'y contáctanos a adoppi0908@gmail.com.',
+                  ),
+                  SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PrivacySection extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String content;
+
+  const _PrivacySection({
+    required this.icon,
+    required this.title,
+    required this.content,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Modal Help & Support ───────────────────────────────────────────────────
+
+class _HelpSupportModal extends StatelessWidget {
+  const _HelpSupportModal();
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.92,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
+              child: Row(
+                children: [
+                  const Text(
+                    'Help & Support',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: ListView(
+                controller: controller,
+                padding: const EdgeInsets.all(20),
+                children: [
+                  const _SectionLabel(label: 'Preguntas frecuentes'),
+                  const SizedBox(height: 12),
+                  const _FaqTile(
+                    question: '¿Cómo puedo adoptar una mascota?',
+                    answer:
+                        'Explora el catálogo de mascotas en el inicio, usa los filtros '
+                        'para encontrar la que mejor se adapte a ti y toca "Me interesa" '
+                        'en su perfil. Esto abrirá un chat directo con el refugio para '
+                        'coordinar el proceso de adopción.',
+                  ),
+                  const _FaqTile(
+                    question: '¿Cómo contacto a un refugio?',
+                    answer:
+                        'Puedes contactar a un refugio desde el perfil de cualquier '
+                        'mascota tocando el botón "Me interesa", o directamente desde '
+                        'el perfil del refugio tocando "Contactar Refugio". Esto abrirá '
+                        'el chat interno de Adoppi.',
+                  ),
+                  const _FaqTile(
+                    question: '¿Cómo funciona el chat?',
+                    answer:
+                        'El chat de Adoppi es un sistema de mensajería interno que '
+                        'conecta adoptantes y refugios de forma segura. Los mensajes '
+                        'son privados y solo los participantes de la conversación pueden '
+                        'verlos. Recibirás una notificación cuando el refugio responda.',
+                  ),
+                  const _FaqTile(
+                    question: '¿Puedo eliminar una conversación?',
+                    answer:
+                        'Sí. En la pantalla de mensajes, desliza la conversación hacia '
+                        'la izquierda y toca el ícono de eliminar. La conversación '
+                        'desaparecerá solo de tu lista; el refugio conservará su copia.',
+                  ),
+                  const _FaqTile(
+                    question: '¿Cómo configuro mis preferencias de mascotas?',
+                    answer:
+                        'Ve a tu perfil y toca "Pet Preferences" en la sección de '
+                        'Settings. Allí puedes seleccionar el tipo de mascota y el '
+                        'rango de edad que prefieres. Esto ayuda a Adoppi a mostrarte '
+                        'las mascotas más relevantes para ti.',
+                  ),
+                  const SizedBox(height: 24),
+                  const _SectionLabel(label: 'Para refugios'),
+                  const SizedBox(height: 12),
+                  const _FaqTile(
+                    question: '¿Cómo publico una mascota?',
+                    answer:
+                        'Desde tu panel de refugio, toca el botón "+" o "Agregar '
+                        'mascota". Completa el formulario con fotos, nombre, edad, '
+                        'raza, género, estado de salud y descripción. Una vez publicada, '
+                        'aparecerá en el catálogo de Adoppi.',
+                  ),
+                  const _FaqTile(
+                    question: '¿Cómo edito o elimino una mascota publicada?',
+                    answer:
+                        'Entra al perfil de la mascota desde tu panel de gestión y '
+                        'toca el ícono de editar (lápiz) para modificar la información, '
+                        'o el ícono de eliminar para retirarla del catálogo.',
+                  ),
+                  const _FaqTile(
+                    question: '¿Cómo actualizo la información de mi refugio?',
+                    answer:
+                        'Desde tu perfil de refugio, toca el ícono de editar en la '
+                        'parte superior. Podrás actualizar el nombre, descripción, '
+                        'dirección, horario, teléfono y foto del refugio.',
+                  ),
+                  const SizedBox(height: 24),
+                  const _SectionLabel(label: 'Reportar un problema'),
+                  const SizedBox(height: 12),
+                  const _FaqTile(
+                    question: '¿Cómo reporto un problema técnico?',
+                    answer:
+                        'Si encuentras un error o comportamiento inesperado en la app, '
+                        'escríbenos a adoppi0908@gmail.com con el asunto "Problema '
+                        'técnico". Describe lo que ocurrió, en qué pantalla y, si '
+                        'puedes, adjunta una captura de pantalla.',
+                  ),
+                  const SizedBox(height: 24),
+                  const _SectionLabel(label: 'Contacto'),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.mail_outline,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Equipo Adoppi',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'adoppi0908@gmail.com',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Respondemos en menos de 48 horas',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textSecondary,
+        letterSpacing: 0.3,
+      ),
+    );
+  }
+}
+
+class _FaqTile extends StatefulWidget {
+  final String question;
+  final String answer;
+
+  const _FaqTile({required this.question, required this.answer});
+
+  @override
+  State<_FaqTile> createState() => _FaqTileState();
+}
+
+class _FaqTileState extends State<_FaqTile> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: _expanded
+              ? AppColors.primary.withOpacity(0.4)
+              : AppColors.divider,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => setState(() => _expanded = !_expanded),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.question,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: _expanded
+                            ? AppColors.primary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: _expanded ? AppColors.primary : AppColors.textHint,
+                      size: 22,
+                    ),
+                  ),
+                ],
+              ),
+              AnimatedCrossFade(
+                firstChild: const SizedBox.shrink(),
+                secondChild: Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    widget.answer,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                crossFadeState: _expanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                duration: const Duration(milliseconds: 200),
+              ),
+            ],
+          ),
         ),
       ),
     );
