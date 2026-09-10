@@ -16,7 +16,9 @@ class NotificationBell extends ConsumerWidget {
     return GestureDetector(
       onTap: () async {
         await NotificationsModal.show(context);
+        // Refrescar después de cerrar el modal
         ref.invalidate(unreadCountProvider);
+        ref.invalidate(notificationsProvider);
       },
       child: Stack(
         children: [

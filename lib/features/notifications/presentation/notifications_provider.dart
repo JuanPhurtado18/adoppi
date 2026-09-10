@@ -11,33 +11,28 @@ final notificationsProvider = FutureProvider<List<Map<String, dynamic>>>((
       .from('notifications')
       .select()
       .eq('user_id', userId)
+      .eq('deleted_by_user', false)
       .order('created_at', ascending: false)
       .limit(50);
 
   return (response as List).cast<Map<String, dynamic>>();
 });
 
-final unreadCountProvider = StreamProvider<int>((ref) async* {
+final unreadCountProvider = FutureProvider<int>((ref) async {
   final userId = Supabase.instance.client.auth.currentUser?.id;
-  if (userId == null) {
-    yield 0;
-    return;
-  }
+  if (userId == null) return 0;
 
-  Future<int> getCount() async {
-    final response = await Supabase.instance.client
-        .from('notifications')
-        .select()
-        .eq('user_id', userId)
-        .eq('is_read', false);
-    return (response as List).length;
-  }
+  final response = await Supabase.instance.client
+      .from('notifications')
+      .select()
+      .eq('user_id', userId)
+      .eq('is_read', false)
+      .eq('deleted_by_user', false);
 
-  yield await getCount();
-
-  await for (final _ in Stream.periodic(const Duration(seconds: 3))) {
-    final count = await getCount();
-
-    yield count;
-  }
+  return (response as List).length;
 });
+
+final deletedNotificationIdsProvider = StateProvider<Set<String>>((ref) => {});
+final locallyReadNotificationIdsProvider = StateProvider<Set<String>>(
+  (ref) => {},
+);
