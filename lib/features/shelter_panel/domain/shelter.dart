@@ -14,6 +14,7 @@ class Shelter {
   final String? coverUrl;
   final double rating;
   final bool isVerified;
+  final bool notificationsEnabled; 
   final DateTime createdAt;
 
   const Shelter({
@@ -32,6 +33,7 @@ class Shelter {
     this.coverUrl,
     this.rating = 0,
     this.isVerified = false,
+    this.notificationsEnabled = true, 
     required this.createdAt,
   });
 
@@ -52,6 +54,7 @@ class Shelter {
       coverUrl: map['cover_url'],
       rating: (map['rating'] ?? 0).toDouble(),
       isVerified: map['is_verified'] ?? false,
+      notificationsEnabled: map['notifications_enabled'] as bool? ?? true,
       createdAt: DateTime.parse(map['created_at']),
     );
   }
@@ -80,6 +83,7 @@ class Shelter {
     String? schedule,
     String? avatarUrl,
     String? coverUrl,
+    bool? notificationsEnabled, 
   }) {
     return Shelter(
       id: id,
@@ -97,7 +101,10 @@ class Shelter {
       coverUrl: coverUrl ?? this.coverUrl,
       rating: rating,
       isVerified: isVerified,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled, 
       createdAt: createdAt,
     );
   }
+
+  void operator [](String other) {}
 }

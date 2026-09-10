@@ -7,6 +7,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../controllers/shelter_controller.dart';
+import '../../../../shared/services/notification_service.dart';
+
+// Provider global para notificaciones del refugio
+final shelterNotificationsEnabledProvider = StateProvider<bool>((ref) => true);
 
 class ProfileTab extends ConsumerStatefulWidget {
   const ProfileTab({super.key});
@@ -16,7 +20,15 @@ class ProfileTab extends ConsumerStatefulWidget {
 }
 
 class _ProfileTabState extends ConsumerState<ProfileTab> {
-  final notificationsEnabledProvider = StateProvider<bool>((ref) => true);
+  bool _notificationsLoaded = false;
+
+  void _loadNotificationsState(bool enabled) {
+    if (_notificationsLoaded) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(shelterNotificationsEnabledProvider.notifier).state = enabled;
+    });
+    _notificationsLoaded = true;
+  }
 
   Future<void> _pickAndUpdatePhoto() async {
     final picker = ImagePicker();
@@ -68,7 +80,7 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
     final shelterState = ref.watch(shelterControllerProvider);
     final shelter = shelterState.shelter;
     final user = Supabase.instance.client.auth.currentUser;
-    final notificationsEnabled = ref.watch(notificationsEnabledProvider);
+    final notificationsEnabled = ref.watch(shelterNotificationsEnabledProvider);
 
     if (shelterState.isLoading && shelter == null) {
       return const Center(
@@ -79,6 +91,8 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
     if (shelter == null) {
       return const Center(child: Text('No se encontró el refugio'));
     }
+
+    _loadNotificationsState(shelter.notificationsEnabled);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -280,9 +294,22 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                           ),
                         ],
                       ),
-                      onTap: () {
-                        ref.read(notificationsEnabledProvider.notifier).state =
-                            !notificationsEnabled;
+                      onTap: () async {
+                        final newValue = !notificationsEnabled;
+                        ref
+                                .read(
+                                  shelterNotificationsEnabledProvider.notifier,
+                                )
+                                .state =
+                            newValue;
+                        final userId =
+                            Supabase.instance.client.auth.currentUser?.id;
+                        if (userId != null) {
+                          await NotificationService.updateShelterNotificationsEnabled(
+                            userId: userId,
+                            enabled: newValue,
+                          );
+                        }
                       },
                     ),
                   ),

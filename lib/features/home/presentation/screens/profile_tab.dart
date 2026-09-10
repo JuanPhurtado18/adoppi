@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../data/home_repository.dart';
+import '../../../../shared/services/notification_service.dart';
 
 final adoptantProfileProvider = FutureProvider<Map<String, dynamic>?>((
   ref,
@@ -37,13 +38,23 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
 
   void _loadPreferences(Map<String, dynamic>? profile) {
     if (_preferencesLoaded || profile == null) return;
+
     final prefs = profile['pet_preferences'];
     if (prefs != null) {
-      final list = (prefs as List).map((e) => e.toString()).toList();
+      // Corregido: usar directamente sin variable intermedia
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(petPreferencesProvider.notifier).state = list;
+        ref.read(petPreferencesProvider.notifier).state = (prefs as List)
+            .map((e) => e.toString())
+            .toList();
       });
     }
+
+    // Inicializar notificaciones con valor real de Supabase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final enabled = profile['notifications_enabled'] as bool? ?? true;
+      ref.read(notificationsEnabledProvider.notifier).state = enabled;
+    });
+
     _preferencesLoaded = true;
   }
 
@@ -495,11 +506,20 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                               ),
                             ],
                           ),
-                          onTap: () {
+                          onTap: () async {
+                            final newValue = !notificationsEnabled;
                             ref
                                     .read(notificationsEnabledProvider.notifier)
                                     .state =
-                                !notificationsEnabled;
+                                newValue;
+                            final userId =
+                                Supabase.instance.client.auth.currentUser?.id;
+                            if (userId != null) {
+                              await NotificationService.updateAdoptantNotificationsEnabled(
+                                userId: userId,
+                                enabled: newValue,
+                              );
+                            }
                           },
                         ),
                       ),
