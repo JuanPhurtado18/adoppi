@@ -110,7 +110,7 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                   child: Row(
                     children: [
                       const Text(
-                        'Pet Preferences',
+                        'Preferencia de mascotas',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -146,17 +146,17 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                           runSpacing: 8,
                           children: [
                             _PreferenceChip(
-                              label: 'Dogs',
+                              label: 'Perros',
                               isSelected: temp.contains('dogs'),
                               onTap: () => toggle('dogs'),
                             ),
                             _PreferenceChip(
-                              label: 'Cats',
+                              label: 'Gatos',
                               isSelected: temp.contains('cats'),
                               onTap: () => toggle('cats'),
                             ),
                             _PreferenceChip(
-                              label: 'Small Pets',
+                              label: 'Perros pequeños',
                               isSelected: temp.contains('small_pets'),
                               onTap: () => toggle('small_pets'),
                             ),
@@ -177,17 +177,17 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                           runSpacing: 8,
                           children: [
                             _PreferenceChip(
-                              label: 'Young',
+                              label: 'Joven',
                               isSelected: temp.contains('young'),
                               onTap: () => toggle('young'),
                             ),
                             _PreferenceChip(
-                              label: 'Adult',
+                              label: 'Adulto',
                               isSelected: temp.contains('adult'),
                               onTap: () => toggle('adult'),
                             ),
                             _PreferenceChip(
-                              label: 'Senior',
+                              label: 'Mayor',
                               isSelected: temp.contains('senior'),
                               onTap: () => toggle('senior'),
                             ),
@@ -401,7 +401,7 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Pet Preferences',
+                        'Preferencia de mascotas',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -422,12 +422,12 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                               runSpacing: 8,
                               children: selectedPreferences.map((pref) {
                                 final labels = {
-                                  'dogs': 'Dogs',
-                                  'cats': 'Cats',
-                                  'small_pets': 'Small Pets',
-                                  'young': 'Young',
-                                  'adult': 'Adult',
-                                  'senior': 'Senior',
+                                  'dogs': 'Perros',
+                                  'cats': 'Gatos',
+                                  'small_pets': 'Perros pequeños',
+                                  'young': 'Joven',
+                                  'adult': 'Adulto',
+                                  'senior': 'Mayor',
                                 };
                                 return Container(
                                   padding: const EdgeInsets.symmetric(
@@ -459,7 +459,7 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
-                    'Settings',
+                    'Configuraciones',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -555,7 +555,7 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                         color: Colors.transparent,
                         child: _SettingsTile(
                           icon: Icons.favorite_outline,
-                          label: 'Pet Preferences',
+                          label: 'Preferencia de mascotas',
                           trailing: const Icon(
                             Icons.chevron_right,
                             color: AppColors.textHint,
@@ -569,7 +569,7 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                         color: Colors.transparent,
                         child: _SettingsTile(
                           icon: Icons.shield_outlined,
-                          label: 'Privacy & Safety',
+                          label: 'Privacidad & seguridad',
                           trailing: const Icon(
                             Icons.chevron_right,
                             color: AppColors.textHint,
@@ -591,7 +591,7 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                         ),
                         child: _SettingsTile(
                           icon: Icons.help_outline,
-                          label: 'Help & Support',
+                          label: 'Ayuda & soporte',
                           trailing: const Icon(
                             Icons.chevron_right,
                             color: AppColors.textHint,
@@ -620,7 +620,7 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                       if (context.mounted) context.go(AppRoutes.login);
                     },
                     icon: const Icon(Icons.logout, color: AppColors.error),
-                    label: const Text('Log Out'),
+                    label: const Text('Cerrar sesión'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
                       side: const BorderSide(color: AppColors.error),
@@ -930,7 +930,7 @@ class _PrivacySafetyModal extends StatelessWidget {
               child: Row(
                 children: [
                   const Text(
-                    'Privacy & Safety',
+                    'Privacidad & Seguridad',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -1108,7 +1108,7 @@ class _HelpSupportModal extends StatelessWidget {
               child: Row(
                 children: [
                   const Text(
-                    'Help & Support',
+                    'Ayuda & Soporte',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -1165,8 +1165,8 @@ class _HelpSupportModal extends StatelessWidget {
                   const _FaqTile(
                     question: '¿Cómo configuro mis preferencias de mascotas?',
                     answer:
-                        'Ve a tu perfil y toca "Pet Preferences" en la sección de '
-                        'Settings. Allí puedes seleccionar el tipo de mascota y el '
+                        'Ve a tu perfil y toca "Preferencia de mascotas" en la sección de '
+                        'configuración. Allí puedes seleccionar el tipo de mascota y el '
                         'rango de edad que prefieres. Esto ayuda a Adoppi a mostrarte '
                         'las mascotas más relevantes para ti.',
                   ),

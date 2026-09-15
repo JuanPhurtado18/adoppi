@@ -249,7 +249,7 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'Settings',
+                'Configuraciones',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -345,7 +345,7 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                     color: Colors.transparent,
                     child: _SettingsTile(
                       icon: Icons.shield_outlined,
-                      label: 'Privacy & Safety',
+                      label: 'Privacidad & seguridad',
                       trailing: const Icon(
                         Icons.chevron_right,
                         color: AppColors.textHint,
@@ -367,7 +367,7 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                     ),
                     child: _SettingsTile(
                       icon: Icons.help_outline,
-                      label: 'Help & Support',
+                      label: 'Ayuda & soporte',
                       trailing: const Icon(
                         Icons.chevron_right,
                         color: AppColors.textHint,
@@ -900,7 +900,7 @@ class _HelpSupportModal extends StatelessWidget {
               child: Row(
                 children: [
                   const Text(
-                    'Help & Support',
+                    'Ayuda y soporte',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,

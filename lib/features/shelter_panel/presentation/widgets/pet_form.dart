@@ -192,7 +192,7 @@ class _PetFormState extends State<PetForm> {
             _SectionLabel(label: 'Especie *'),
             const SizedBox(height: 8),
             _ChipGroup(
-              options: const ['perro', 'gato', 'otro'],
+              options: const ['Perro', 'Gato', 'Otro'],
               selected: _species,
               onSelected: (v) => setState(() => _species = v),
             ),
@@ -202,7 +202,7 @@ class _PetFormState extends State<PetForm> {
             _SectionLabel(label: 'Género'),
             const SizedBox(height: 8),
             _ChipGroup(
-              options: const ['macho', 'hembra'],
+              options: const ['Macho', 'Hembra'],
               selected: _gender,
               onSelected: (v) => setState(() => _gender = v),
               allowDeselect: true,
@@ -213,7 +213,7 @@ class _PetFormState extends State<PetForm> {
             _SectionLabel(label: 'Tamaño'),
             const SizedBox(height: 8),
             _ChipGroup(
-              options: const ['pequeño', 'mediano', 'grande'],
+              options: const ['Pequeño', 'Mediano', 'Grande'],
               selected: _size,
               onSelected: (v) => setState(() => _size = v),
               allowDeselect: true,
