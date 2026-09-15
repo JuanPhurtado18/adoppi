@@ -1,3 +1,4 @@
+// shelters_tab.dart
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../controllers/home_controller.dart';
 import '../../../shelter_panel/domain/shelter.dart';
 import '../../../pet_detail/presentation/screens/shelter_detail_screen.dart';
+import '../../../notifications/presentation/notification_bell.dart';
 
 class SheltersTab extends ConsumerStatefulWidget {
   const SheltersTab({super.key});
@@ -49,37 +51,50 @@ class _SheltersTabState extends ConsumerState<SheltersTab> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // Header con búsqueda
+          // Header con fondo morado
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 52, 20, 20),
-            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(20, 52, 20, 24),
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Refugios',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${state.shelters.length} refugios registrados',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Adoppi',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'Refugios',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white.withOpacity(0.85),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    NotificationBell(iconColor: Colors.white),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
                 // Barra de búsqueda
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.background,
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.divider),
                   ),
                   child: TextField(
                     controller: _searchController,
@@ -134,11 +149,13 @@ class _SheltersTabState extends ConsumerState<SheltersTab> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          const SizedBox(height: 16),
+
                           // Mapa
                           if (sheltersWithCoords.isNotEmpty) ...[
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                              child: const Text(
+                            const Padding(
+                              padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                              child: Text(
                                 'Mapa de Refugios',
                                 style: TextStyle(
                                   fontSize: 16,
@@ -234,9 +251,9 @@ class _SheltersTabState extends ConsumerState<SheltersTab> {
                           // Lista de refugios
                           Padding(
                             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                            child: const Text(
-                              'Lista de Refugios',
-                              style: TextStyle(
+                            child: Text(
+                              '${state.shelters.length} refugios registrados',
+                              style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary,
@@ -443,15 +460,15 @@ class _ShelterListCard extends StatelessWidget {
                     if (shelter.latitude != null &&
                         shelter.longitude != null) ...[
                       const SizedBox(height: 4),
-                      Row(
+                      const Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.map_outlined,
                             size: 13,
                             color: AppColors.primary,
                           ),
-                          const SizedBox(width: 4),
-                          const Text(
+                          SizedBox(width: 4),
+                          Text(
                             'En el mapa',
                             style: TextStyle(
                               fontSize: 12,

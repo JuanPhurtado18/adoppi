@@ -1,3 +1,4 @@
+// conversations_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -5,6 +6,7 @@ import '../controllers/chat_controller.dart';
 import '../../data/chat_repository.dart';
 import '../../domain/conversation.dart';
 import 'chat_screen.dart';
+import '../../../notifications/presentation/notification_bell.dart';
 
 class ConversationsScreen extends ConsumerStatefulWidget {
   final bool isShelter;
@@ -101,21 +103,43 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
+          // Header con fondo morado
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 52, 20, 20),
-            color: Colors.white,
-            child: const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Mensajes',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+            padding: const EdgeInsets.fromLTRB(20, 52, 20, 24),
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Adoppi',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'Mensajes',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.85),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                NotificationBell(iconColor: Colors.white),
+              ],
             ),
           ),
+
+          // Lista de conversaciones
           Expanded(
             child: conversationsAsync.when(
               loading: () => const Center(
