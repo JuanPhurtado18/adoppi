@@ -7,6 +7,64 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../data/home_repository.dart';
 import '../../../../shared/services/notification_service.dart';
+import 'package:flutter/services.dart';
+
+// ── Ciudades de Colombia ───────────────────────────────────────────────────
+const _colombianCities = [
+  'Bogotá',
+  'Medellín',
+  'Cali',
+  'Barranquilla',
+  'Cartagena',
+  'Cúcuta',
+  'Bucaramanga',
+  'Pereira',
+  'Santa Marta',
+  'Ibagué',
+  'Pasto',
+  'Manizales',
+  'Neiva',
+  'Villavicencio',
+  'Armenia',
+  'Valledupar',
+  'Montería',
+  'Sincelejo',
+  'Popayán',
+  'Tunja',
+  'Florencia',
+  'Quibdó',
+  'Riohacha',
+  'San Andrés',
+  'Mocoa',
+  'Mitú',
+  'Puerto Carreño',
+  'Inírida',
+  'Yopal',
+  'Arauca',
+  'Leticia',
+  'Puerto Nariño',
+  'Bello',
+  'Itagüí',
+  'Envigado',
+  'Soledad',
+  'Palmira',
+  'Buenaventura',
+  'Barrancabermeja',
+  'Floridablanca',
+  'Girón',
+  'Piedecuesta',
+  'Dosquebradas',
+  'Tuluá',
+  'Buga',
+  'Cartago',
+  'Sogamoso',
+  'Duitama',
+  'Zipaquirá',
+  'Facatativá',
+  'Chía',
+  'Soacha',
+  'Fusagasugá',
+];
 
 final adoptantProfileProvider = FutureProvider<Map<String, dynamic>?>((
   ref,
@@ -700,6 +758,10 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
   late final TextEditingController _cityController;
   bool _isSaving = false;
 
+  // Ciudad
+  String? _selectedCity;
+  List<String> _citySuggestions = [];
+
   @override
   void initState() {
     super.initState();
@@ -715,6 +777,11 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
     _cityController = TextEditingController(
       text: widget.profile?['city'] ?? '',
     );
+    // Pre-cargar ciudad si ya existe
+    final existingCity = widget.profile?['city'] as String?;
+    if (existingCity != null && existingCity.isNotEmpty) {
+      _selectedCity = existingCity;
+    }
   }
 
   @override
@@ -726,8 +793,28 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
     super.dispose();
   }
 
+  void _onCityChanged(String value) {
+    setState(() {
+      _selectedCity = null;
+      _citySuggestions = value.isEmpty
+          ? []
+          : _colombianCities
+                .where((c) => c.toLowerCase().contains(value.toLowerCase()))
+                .toList();
+    });
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedCity == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecciona una ciudad de la lista'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     setState(() => _isSaving = true);
 
     try {
@@ -740,7 +827,7 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
             'full_name': _fullNameController.text.trim(),
             'last_name': _lastNameController.text.trim(),
             'phone': _phoneController.text.trim(),
-            'city': _cityController.text.trim(),
+            'city': _selectedCity!,
           })
           .eq('id', userId);
 
@@ -810,6 +897,8 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
             ),
             const Divider(),
             const SizedBox(height: 12),
+
+            // Nombre
             _ProfileField(
               controller: _fullNameController,
               label: 'Nombre',
@@ -818,24 +907,124 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
                   (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
             ),
             const SizedBox(height: 12),
+
+            // Apellido
             _ProfileField(
               controller: _lastNameController,
               label: 'Apellido',
               icon: Icons.person_outline,
             ),
             const SizedBox(height: 12),
-            _ProfileField(
+
+            // Teléfono — solo números
+            TextFormField(
               controller: _phoneController,
-              label: 'Teléfono',
-              icon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: InputDecoration(
+                labelText: 'Teléfono',
+                prefixIcon: const Icon(
+                  Icons.phone_outlined,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 2,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
             ),
             const SizedBox(height: 12),
-            _ProfileField(
+
+            // Ciudad con autocomplete
+            TextFormField(
               controller: _cityController,
-              label: 'Ciudad',
-              icon: Icons.location_city_outlined,
+              onChanged: _onCityChanged,
+              decoration: InputDecoration(
+                labelText: 'Ciudad',
+                hintText: 'Escribe para buscar...',
+                prefixIcon: const Icon(
+                  Icons.location_city_outlined,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                suffixIcon: _selectedCity != null
+                    ? const Icon(Icons.check_circle, color: AppColors.success)
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 2,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
+              validator: (_) => _selectedCity == null
+                  ? 'Selecciona una ciudad de la lista'
+                  : null,
             ),
+            if (_citySuggestions.isNotEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.divider),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  itemCount: _citySuggestions.length > 5
+                      ? 5
+                      : _citySuggestions.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final city = _citySuggestions[index];
+                    return ListTile(
+                      dense: true,
+                      leading: const Icon(
+                        Icons.location_city_outlined,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                      title: Text(city, style: const TextStyle(fontSize: 14)),
+                      onTap: () {
+                        setState(() {
+                          _selectedCity = city;
+                          _cityController.text = city;
+                          _citySuggestions = [];
+                        });
+                      },
+                    );
+                  },
+                ),
+              ),
+
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _isSaving ? null : _save,
