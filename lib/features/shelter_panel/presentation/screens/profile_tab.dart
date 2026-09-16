@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +9,89 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../controllers/shelter_controller.dart';
 import '../../../../shared/services/notification_service.dart';
+
+// ── Ciudades de Colombia ───────────────────────────────────────────────────
+const _colombianCities = [
+  'Bogotá',
+  'Medellín',
+  'Cali',
+  'Barranquilla',
+  'Cartagena',
+  'Cúcuta',
+  'Bucaramanga',
+  'Pereira',
+  'Santa Marta',
+  'Ibagué',
+  'Pasto',
+  'Manizales',
+  'Neiva',
+  'Villavicencio',
+  'Armenia',
+  'Valledupar',
+  'Montería',
+  'Sincelejo',
+  'Popayán',
+  'Tunja',
+  'Florencia',
+  'Quibdó',
+  'Riohacha',
+  'San Andrés',
+  'Mocoa',
+  'Mitú',
+  'Puerto Carreño',
+  'Inírida',
+  'Yopal',
+  'Arauca',
+  'Leticia',
+  'Puerto Nariño',
+  'Bello',
+  'Itagüí',
+  'Envigado',
+  'Soledad',
+  'Palmira',
+  'Buenaventura',
+  'Barrancabermeja',
+  'Floridablanca',
+  'Girón',
+  'Piedecuesta',
+  'Dosquebradas',
+  'Tuluá',
+  'Buga',
+  'Cartago',
+  'Sogamoso',
+  'Duitama',
+  'Zipaquirá',
+  'Facatativá',
+  'Chía',
+  'Soacha',
+  'Fusagasugá',
+];
+
+// ── Formateador de dirección ───────────────────────────────────────────────
+class _AddressInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final filtered = newValue.text.replaceAll(
+      RegExp(r'[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s#\-]'),
+      '',
+    );
+    return newValue.copyWith(
+      text: filtered,
+      selection: TextSelection.collapsed(offset: filtered.length),
+    );
+  }
+}
+
+bool _isValidAddress(String value) {
+  final regex = RegExp(
+    r'^(Calle|Carrera|Avenida|Diagonal|Transversal|Cra|Cl|Av|Kr)\s+\d+[\w\s#\-]*$',
+    caseSensitive: false,
+  );
+  return regex.hasMatch(value.trim());
+}
 
 // Provider global para notificaciones del refugio
 final shelterNotificationsEnabledProvider = StateProvider<bool>((ref) => true);
@@ -100,14 +184,12 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header morado
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 48, 20, 32),
               color: AppColors.primary,
               child: Stack(
                 children: [
-                  // Botón editar esquina superior derecha
                   Positioned(
                     top: 0,
                     right: 0,
@@ -128,7 +210,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                       ),
                     ),
                   ),
-                  // Contenido centrado
                   Column(
                     children: [
                       Stack(
@@ -245,7 +326,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
 
             const SizedBox(height: 24),
 
-            // Settings
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: Text(
@@ -387,7 +467,6 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
 
             const SizedBox(height: 24),
 
-            // Cerrar sesión
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: OutlinedButton.icon(
@@ -462,8 +541,111 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
   late final TextEditingController _addressController;
   late final TextEditingController _cityController;
   late final TextEditingController _phoneController;
-  late final TextEditingController _scheduleController;
   bool _isSaving = false;
+
+  // Ciudad
+  String? _selectedCity;
+  List<String> _citySuggestions = [];
+
+  // Horario
+  final List<String> _allDays = [
+    'Lun',
+    'Mar',
+    'Mié',
+    'Jue',
+    'Vie',
+    'Sáb',
+    'Dom',
+  ];
+  late Set<String> _selectedDays;
+  late TimeOfDay _openTime;
+  late TimeOfDay _closeTime;
+
+  String get _scheduleText {
+    if (_selectedDays.isEmpty) return '';
+    final days = _allDays.where((d) => _selectedDays.contains(d)).toList();
+    String dayRange;
+    if (days.length == 1) {
+      dayRange = days.first;
+    } else {
+      final firstIndex = _allDays.indexOf(days.first);
+      final lastIndex = _allDays.indexOf(days.last);
+      final continuous = days.length == lastIndex - firstIndex + 1;
+      dayRange = continuous ? '${days.first}-${days.last}' : days.join(', ');
+    }
+    return '$dayRange ${_formatTime(_openTime)} - ${_formatTime(_closeTime)}';
+  }
+
+  String _formatTime(TimeOfDay t) {
+    final hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final minute = t.minute.toString().padLeft(2, '0');
+    final period = t.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+
+  // Parsear horario existente para pre-cargar los valores
+  void _parseExistingSchedule(String? schedule) {
+    _selectedDays = {};
+    _openTime = const TimeOfDay(hour: 9, minute: 0);
+    _closeTime = const TimeOfDay(hour: 18, minute: 0);
+
+    if (schedule == null || schedule.isEmpty) return;
+
+    try {
+      // Intentar extraer días y horas del texto guardado
+      // Formato esperado: "Lun-Sáb 9:00 AM - 6:00 PM"
+      final timeRegex = RegExp(
+        r'(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)',
+        caseSensitive: false,
+      );
+      final match = timeRegex.firstMatch(schedule);
+      if (match != null) {
+        int openHour = int.parse(match.group(1)!);
+        final openMin = int.parse(match.group(2)!);
+        final openPeriod = match.group(3)!.toUpperCase();
+        int closeHour = int.parse(match.group(4)!);
+        final closeMin = int.parse(match.group(5)!);
+        final closePeriod = match.group(6)!.toUpperCase();
+
+        if (openPeriod == 'PM' && openHour != 12) openHour += 12;
+        if (openPeriod == 'AM' && openHour == 12) openHour = 0;
+        if (closePeriod == 'PM' && closeHour != 12) closeHour += 12;
+        if (closePeriod == 'AM' && closeHour == 12) closeHour = 0;
+
+        _openTime = TimeOfDay(hour: openHour, minute: openMin);
+        _closeTime = TimeOfDay(hour: closeHour, minute: closeMin);
+      }
+
+      // Extraer días
+      final daysPart = schedule.split(RegExp(r'\d')).first.trim();
+      if (daysPart.contains('-')) {
+        final parts = daysPart.split('-');
+        if (parts.length == 2) {
+          final start = parts[0].trim();
+          final end = parts[1].trim();
+          final startIdx = _allDays.indexWhere(
+            (d) => d.toLowerCase() == start.toLowerCase(),
+          );
+          final endIdx = _allDays.indexWhere(
+            (d) => d.toLowerCase() == end.toLowerCase(),
+          );
+          if (startIdx != -1 && endIdx != -1) {
+            for (int i = startIdx; i <= endIdx; i++) {
+              _selectedDays.add(_allDays[i]);
+            }
+          }
+        }
+      } else {
+        for (final day in _allDays) {
+          if (daysPart.toLowerCase().contains(day.toLowerCase())) {
+            _selectedDays.add(day);
+          }
+        }
+      }
+    } catch (_) {
+      // Si falla el parsing, usar valores por defecto
+    }
+  }
 
   @override
   void initState() {
@@ -477,9 +659,12 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
     );
     _cityController = TextEditingController(text: widget.shelter.city ?? '');
     _phoneController = TextEditingController(text: widget.shelter.phone ?? '');
-    _scheduleController = TextEditingController(
-      text: widget.shelter.schedule ?? '',
-    );
+
+    _selectedCity = widget.shelter.city?.isNotEmpty == true
+        ? widget.shelter.city
+        : null;
+
+    _parseExistingSchedule(widget.shelter.schedule);
   }
 
   @override
@@ -489,12 +674,61 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
     _addressController.dispose();
     _cityController.dispose();
     _phoneController.dispose();
-    _scheduleController.dispose();
     super.dispose();
+  }
+
+  void _onCityChanged(String value) {
+    setState(() {
+      _selectedCity = null;
+      _citySuggestions = value.isEmpty
+          ? []
+          : _colombianCities
+                .where((c) => c.toLowerCase().contains(value.toLowerCase()))
+                .toList();
+    });
+  }
+
+  Future<void> _pickTime(bool isOpen) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isOpen ? _openTime : _closeTime,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isOpen) {
+          _openTime = picked;
+        } else {
+          _closeTime = picked;
+        }
+      });
+    }
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_selectedCity == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecciona una ciudad de la lista'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+    if (_selectedDays.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Selecciona los días de atención'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     final success = await ref
@@ -503,9 +737,9 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
           'name': _nameController.text.trim(),
           'description': _descriptionController.text.trim(),
           'address': _addressController.text.trim(),
-          'city': _cityController.text.trim(),
+          'city': _selectedCity!,
           'phone': _phoneController.text.trim(),
-          'schedule': _scheduleController.text.trim(),
+          'schedule': _scheduleText,
         });
 
     if (mounted) {
@@ -534,7 +768,7 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.85,
+      initialChildSize: 0.9,
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (_, controller) => Container(
@@ -578,6 +812,8 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
               ),
               const Divider(),
               const SizedBox(height: 12),
+
+              // Nombre
               _ShelterField(
                 controller: _nameController,
                 label: 'Nombre del refugio',
@@ -586,6 +822,8 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
                     (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
               ),
               const SizedBox(height: 12),
+
+              // Descripción
               _ShelterField(
                 controller: _descriptionController,
                 label: 'Descripción',
@@ -593,32 +831,360 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
                 maxLines: 3,
               ),
               const SizedBox(height: 12),
-              _ShelterField(
+
+              // Dirección con validación de formato
+              TextFormField(
                 controller: _addressController,
-                label: 'Dirección',
-                icon: Icons.location_on_outlined,
-                helperText: 'Formato: Calle/Carrera Número, Ej: Carrera 56 134',
+                inputFormatters: [_AddressInputFormatter()],
+                decoration: const InputDecoration(
+                  labelText: 'Dirección',
+                  hintText: 'Ej: Carrera 56 134',
+                  helperText:
+                      'Formato: Calle/Carrera/Avenida + Número. Ej: Carrera 56 134',
+                  helperMaxLines: 2,
+                  prefixIcon: Icon(
+                    Icons.location_on_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Campo requerido';
+                  if (!_isValidAddress(v)) {
+                    return 'Formato inválido. Ej: Carrera 56 134';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
-              _ShelterField(
+
+              // Ciudad con autocomplete
+              TextFormField(
                 controller: _cityController,
-                label: 'Ciudad',
-                icon: Icons.location_city_outlined,
+                onChanged: _onCityChanged,
+                decoration: InputDecoration(
+                  labelText: 'Ciudad',
+                  hintText: 'Escribe para buscar...',
+                  prefixIcon: const Icon(
+                    Icons.location_city_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                  suffixIcon: _selectedCity != null
+                      ? const Icon(Icons.check_circle, color: AppColors.success)
+                      : null,
+                  border: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+                validator: (_) => _selectedCity == null
+                    ? 'Selecciona una ciudad de la lista'
+                    : null,
               ),
+              if (_citySuggestions.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.divider),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    itemCount: _citySuggestions.length > 5
+                        ? 5
+                        : _citySuggestions.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final city = _citySuggestions[index];
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(
+                          Icons.location_city_outlined,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
+                        title: Text(city, style: const TextStyle(fontSize: 14)),
+                        onTap: () {
+                          setState(() {
+                            _selectedCity = city;
+                            _cityController.text = city;
+                            _citySuggestions = [];
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
               const SizedBox(height: 12),
-              _ShelterField(
+
+              // Teléfono solo números
+              TextFormField(
                 controller: _phoneController,
-                label: 'Teléfono',
-                icon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: const InputDecoration(
+                  labelText: 'Teléfono',
+                  hintText: '3001234567',
+                  prefixIcon: Icon(
+                    Icons.phone_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Campo requerido';
+                  if (v.trim().length < 7) return 'Teléfono inválido';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // Horario
+              const Text(
+                'Horario de atención',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 12),
-              _ShelterField(
-                controller: _scheduleController,
-                label: 'Horario',
-                icon: Icons.schedule_outlined,
-                hintText: 'Ej: Lun-Sáb 9 AM - 6 PM',
+              const Text(
+                'Días',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _allDays.map((day) {
+                  final selected = _selectedDays.contains(day);
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        if (selected) {
+                          _selectedDays.remove(day);
+                        } else {
+                          _selectedDays.add(day);
+                        }
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected ? AppColors.primary : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.primary
+                              : AppColors.divider,
+                        ),
+                      ),
+                      child: Text(
+                        day,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: selected
+                              ? Colors.white
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Horario',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _pickTime(true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.access_time,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Apertura',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  _formatTime(_openTime),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      '—',
+                      style: TextStyle(color: AppColors.textHint),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _pickTime(false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.access_time,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Cierre',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  _formatTime(_closeTime),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              if (_selectedDays.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.schedule_outlined,
+                        color: AppColors.primary,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _scheduleText,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _isSaving ? null : _save,
@@ -724,7 +1290,7 @@ class _PrivacySafetyModal extends StatelessWidget {
               child: Row(
                 children: [
                   const Text(
-                    'Privacy & Safety',
+                    'Privacidad & seguridad',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,

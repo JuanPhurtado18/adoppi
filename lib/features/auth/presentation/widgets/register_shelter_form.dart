@@ -1,11 +1,88 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/auth_controller.dart';
 import '../../domain/auth_state.dart';
 import 'terms_modal.dart';
+
+// ── Ciudades de Colombia ───────────────────────────────────────────────────
+const _colombianCities = [
+  'Bogotá',
+  'Medellín',
+  'Cali',
+  'Barranquilla',
+  'Cartagena',
+  'Cúcuta',
+  'Bucaramanga',
+  'Pereira',
+  'Santa Marta',
+  'Ibagué',
+  'Pasto',
+  'Manizales',
+  'Neiva',
+  'Villavicencio',
+  'Armenia',
+  'Valledupar',
+  'Montería',
+  'Sincelejo',
+  'Popayán',
+  'Tunja',
+  'Florencia',
+  'Quibdó',
+  'Riohacha',
+  'San Andrés',
+  'Mocoa',
+  'Mitú',
+  'Puerto Carreño',
+  'Inírida',
+  'Yopal',
+  'Arauca',
+  'Leticia',
+  'Puerto Nariño',
+  'Bello',
+  'Itagüí',
+  'Envigado',
+  'Soledad',
+  'Palmira',
+  'Buenaventura',
+  'Barrancabermeja',
+  'Floridablanca',
+  'Girón',
+  'Piedecuesta',
+  'Dosquebradas',
+  'Tuluá',
+  'Buga',
+  'Cartago',
+  'Sogamoso',
+  'Duitama',
+  'Zipaquirá',
+  'Facatativá',
+  'Chía',
+  'Soacha',
+  'Fusagasugá',
+];
+
+// ── Formateador de dirección ───────────────────────────────────────────────
+class _AddressInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Solo permite letras, números y espacios
+    final filtered = newValue.text.replaceAll(
+      RegExp(r'[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s#\-]'),
+      '',
+    );
+    return newValue.copyWith(
+      text: filtered,
+      selection: TextSelection.collapsed(offset: filtered.length),
+    );
+  }
+}
 
 class RegisterShelterForm extends ConsumerStatefulWidget {
   const RegisterShelterForm({super.key});
@@ -24,10 +101,51 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
   final _cityController = TextEditingController();
   final _phoneController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _scheduleController = TextEditingController();
   bool _obscurePassword = true;
   bool _acceptedTerms = false;
   File? _avatarFile;
+
+  // Ciudad
+  String? _selectedCity;
+  List<String> _citySuggestions = [];
+
+  // Horario
+  final List<String> _allDays = [
+    'Lun',
+    'Mar',
+    'Mié',
+    'Jue',
+    'Vie',
+    'Sáb',
+    'Dom',
+  ];
+  final Set<String> _selectedDays = {};
+  TimeOfDay _openTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _closeTime = const TimeOfDay(hour: 18, minute: 0);
+  String get _scheduleText {
+    if (_selectedDays.isEmpty) return '';
+    final days = _allDays.where((d) => _selectedDays.contains(d)).toList();
+    String dayRange = '';
+    if (days.length == 1) {
+      dayRange = days.first;
+    } else {
+      // Intentar construir rango continuo
+      final firstIndex = _allDays.indexOf(days.first);
+      final lastIndex = _allDays.indexOf(days.last);
+      final continuous = days.length == lastIndex - firstIndex + 1;
+      dayRange = continuous ? '${days.first}-${days.last}' : days.join(', ');
+    }
+    final open = _formatTime(_openTime);
+    final close = _formatTime(_closeTime);
+    return '$dayRange $open - $close';
+  }
+
+  String _formatTime(TimeOfDay t) {
+    final hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final minute = t.minute.toString().padLeft(2, '0');
+    final period = t.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
 
   @override
   void dispose() {
@@ -38,8 +156,20 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
     _cityController.dispose();
     _phoneController.dispose();
     _descriptionController.dispose();
-    _scheduleController.dispose();
     super.dispose();
+  }
+
+  void _onCityChanged(String value) {
+    setState(() {
+      _selectedCity = null;
+      if (value.isEmpty) {
+        _citySuggestions = [];
+      } else {
+        _citySuggestions = _colombianCities
+            .where((c) => c.toLowerCase().contains(value.toLowerCase()))
+            .toList();
+      }
+    });
   }
 
   Future<void> _pickImage() async {
@@ -55,12 +185,57 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
     }
   }
 
+  Future<void> _pickTime(bool isOpen) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: isOpen ? _openTime : _closeTime,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isOpen) {
+          _openTime = picked;
+        } else {
+          _closeTime = picked;
+        }
+      });
+    }
+  }
+
+  bool _isValidAddress(String value) {
+    // Acepta: "Carrera 56 134", "Calle 5 #40-45", "Avenida 3 Norte 12", etc.
+    final regex = RegExp(
+      r'^(Calle|Carrera|Avenida|Diagonal|Transversal|Cra|Cl|Av|Kr)\s+\d+[\w\s#\-]*$',
+      caseSensitive: false,
+    );
+    return regex.hasMatch(value.trim());
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_avatarFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor selecciona una foto del refugio'),
+        ),
+      );
+      return;
+    }
+    if (_selectedCity == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor selecciona una ciudad de la lista'),
+        ),
+      );
+      return;
+    }
+    if (_selectedDays.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor selecciona los días de atención'),
         ),
       );
       return;
@@ -81,10 +256,10 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
           password: _passwordController.text,
           shelterName: _nameController.text.trim(),
           address: _addressController.text.trim(),
-          city: _cityController.text.trim(),
+          city: _selectedCity!,
           phone: _phoneController.text.trim(),
           description: _descriptionController.text.trim(),
-          schedule: _scheduleController.text.trim(),
+          schedule: _scheduleText,
           avatarFile: _avatarFile!,
         );
   }
@@ -107,41 +282,46 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
     return Form(
       key: _formKey,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Selector de foto
-          GestureDetector(
-            onTap: _pickImage,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.primary, width: 2),
-                image: _avatarFile != null
-                    ? DecorationImage(
-                        image: FileImage(_avatarFile!),
-                        fit: BoxFit.cover,
+          // Foto
+          Center(
+            child: GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.primary, width: 2),
+                  image: _avatarFile != null
+                      ? DecorationImage(
+                          image: FileImage(_avatarFile!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: _avatarFile == null
+                    ? const Icon(
+                        Icons.add_a_photo,
+                        color: AppColors.primary,
+                        size: 32,
                       )
                     : null,
               ),
-              child: _avatarFile == null
-                  ? const Icon(
-                      Icons.add_a_photo,
-                      color: AppColors.primary,
-                      size: 32,
-                    )
-                  : null,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Foto del refugio *',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          const Center(
+            child: Text(
+              'Foto del refugio *',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
           ),
           const SizedBox(height: 24),
 
-          // Nombre del refugio
+          // Nombre
           TextFormField(
             controller: _nameController,
             decoration: const InputDecoration(
@@ -149,12 +329,9 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
               hintText: 'Fundación Amigos Peludos',
               prefixIcon: Icon(Icons.home_outlined),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'El nombre del refugio es requerido';
-              }
-              return null;
-            },
+            validator: (v) => (v == null || v.trim().isEmpty)
+                ? 'El nombre del refugio es requerido'
+                : null,
           ),
           const SizedBox(height: 16),
 
@@ -167,88 +344,320 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
               hintText: 'Cuéntanos sobre tu refugio o fundación',
               prefixIcon: Icon(Icons.description_outlined),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'La descripción es requerida';
-              }
-              return null;
-            },
+            validator: (v) => (v == null || v.trim().isEmpty)
+                ? 'La descripción es requerida'
+                : null,
           ),
           const SizedBox(height: 16),
 
           // Dirección
           TextFormField(
             controller: _addressController,
+            inputFormatters: [_AddressInputFormatter()],
             decoration: const InputDecoration(
               labelText: 'Dirección *',
-              hintText: 'Ej: Calle 5 40-45',
+              hintText: 'Ej: Carrera 56 134',
               helperText:
-                  'Escribe la dirección completa: Calle/Carrera Número, Ej: Carrera 56 134',
+                  'Formato: Calle/Carrera/Avenida + Número. Ej: Carrera 56 134',
               helperMaxLines: 2,
               prefixIcon: Icon(Icons.location_on_outlined),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
+            validator: (v) {
+              if (v == null || v.trim().isEmpty)
                 return 'La dirección es requerida';
+              if (!_isValidAddress(v)) {
+                return 'Formato inválido. Ej: Carrera 56 134 o Calle 5 #40-45';
               }
               return null;
             },
           ),
           const SizedBox(height: 16),
 
-          // Ciudad
-          TextFormField(
-            controller: _cityController,
-            decoration: const InputDecoration(
-              labelText: 'Ciudad *',
-              hintText: 'Cali',
-              prefixIcon: Icon(Icons.location_city_outlined),
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'La ciudad es requerida';
-              }
-              return null;
-            },
+          // Ciudad con autocomplete
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _cityController,
+                onChanged: _onCityChanged,
+                decoration: InputDecoration(
+                  labelText: 'Ciudad *',
+                  hintText: 'Escribe para buscar...',
+                  prefixIcon: const Icon(Icons.location_city_outlined),
+                  suffixIcon: _selectedCity != null
+                      ? const Icon(Icons.check_circle, color: AppColors.success)
+                      : null,
+                ),
+                validator: (_) => _selectedCity == null
+                    ? 'Selecciona una ciudad de la lista'
+                    : null,
+              ),
+              if (_citySuggestions.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.divider),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    itemCount: _citySuggestions.length > 5
+                        ? 5
+                        : _citySuggestions.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final city = _citySuggestions[index];
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(
+                          Icons.location_city_outlined,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
+                        title: Text(city, style: const TextStyle(fontSize: 14)),
+                        onTap: () {
+                          setState(() {
+                            _selectedCity = city;
+                            _cityController.text = city;
+                            _citySuggestions = [];
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 16),
 
-          // Teléfono
+          // Teléfono — solo números
           TextFormField(
             controller: _phoneController,
             keyboardType: TextInputType.phone,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: const InputDecoration(
               labelText: 'Teléfono *',
               hintText: '3001234567',
               prefixIcon: Icon(Icons.phone_outlined),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
+            validator: (v) {
+              if (v == null || v.trim().isEmpty)
                 return 'El teléfono es requerido';
-              }
-              if (value.trim().length < 7) {
-                return 'Ingresa un teléfono válido';
-              }
+              if (v.trim().length < 7) return 'Ingresa un teléfono válido';
               return null;
             },
+          ),
+          const SizedBox(height: 24),
+
+          // Horario
+          const Text(
+            'Horario de atención *',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Selector de días
+          const Text(
+            'Días',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _allDays.map((day) {
+              final selected = _selectedDays.contains(day);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (selected) {
+                      _selectedDays.remove(day);
+                    } else {
+                      _selectedDays.add(day);
+                    }
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.primary : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: selected ? AppColors.primary : AppColors.divider,
+                    ),
+                  ),
+                  child: Text(
+                    day,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? Colors.white : AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 16),
 
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _scheduleController,
-            decoration: const InputDecoration(
-              labelText: 'Horario *',
-              hintText: 'Ej: Lun-Sáb 9 AM - 6 PM',
-              prefixIcon: Icon(Icons.schedule_outlined),
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'El horario es requerido';
-              }
-              return null;
-            },
+          // Selector de horas
+          const Text(
+            'Horario',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _pickTime(true),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Apertura',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              _formatTime(_openTime),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 12),
+                child: Text('—', style: TextStyle(color: AppColors.textHint)),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _pickTime(false),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Cierre',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              _formatTime(_closeTime),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Preview del horario generado
+          if (_selectedDays.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.schedule_outlined,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _scheduleText,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
 
           // Email
           TextFormField(
@@ -259,13 +668,10 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
               hintText: 'contacto@refugio.com',
               prefixIcon: Icon(Icons.email_outlined),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
+            validator: (v) {
+              if (v == null || v.trim().isEmpty)
                 return 'El correo es requerido';
-              }
-              if (!RegExp(
-                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-              ).hasMatch(value)) {
+              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
                 return 'Ingresa un correo válido';
               }
               return null;
@@ -291,26 +697,22 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
                 ),
               ),
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'La contraseña es requerida';
-              }
-              if (value.length < 6) {
+            validator: (v) {
+              if (v == null || v.isEmpty) return 'La contraseña es requerida';
+              if (v.length < 6)
                 return 'La contraseña debe tener al menos 6 caracteres';
-              }
               return null;
             },
           ),
           const SizedBox(height: 24),
 
-          // Términos y condiciones
+          // Términos
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Checkbox(
                 value: _acceptedTerms,
-                onChanged: (value) =>
-                    setState(() => _acceptedTerms = value ?? false),
+                onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
                 activeColor: AppColors.primary,
               ),
               Expanded(
@@ -342,7 +744,7 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
           ),
           const SizedBox(height: 24),
 
-          // Botón registrarse
+          // Botón
           ElevatedButton(
             onPressed: authState.isLoading ? null : _submit,
             child: authState.isLoading
