@@ -1,8 +1,99 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../../core/theme/app_colors.dart';
 import '../../domain/pet.dart';
+
+const Map<String, List<String>> _breedsBySpecies = {
+  'Perro': [
+    'Mestizo',
+    'Labrador Retriever',
+    'Golden Retriever',
+    'Pastor Alemán',
+    'Bulldog Francés',
+    'Bulldog Inglés',
+    'Beagle',
+    'Poodle',
+    'Rottweiler',
+    'Yorkshire Terrier',
+    'Boxer',
+    'Dachshund',
+    'Siberian Husky',
+    'Doberman',
+    'Gran Danés',
+    'Shih Tzu',
+    'Chihuahua',
+    'Pomerania',
+    'Schnauzer',
+    'Border Collie',
+    'Australian Shepherd',
+    'Cocker Spaniel',
+    'Maltés',
+    'Bichón Frisé',
+    'Pug',
+    'Akita',
+    'Shar Pei',
+    'Weimaraner',
+    'Bernese Mountain Dog',
+    'Samoyedo',
+    'Chow Chow',
+    'Dalmatian',
+    'Basset Hound',
+    'Bullmastiff',
+    'Cane Corso',
+    'Pitbull',
+    'American Bully',
+    'Jack Russell Terrier',
+    'West Highland Terrier',
+    'Boston Terrier',
+    'Lhasa Apso',
+    'Pekinés',
+    'Spitz Alemán',
+    'Setter Irlandés',
+    'Pointer',
+    'Vizsla',
+    'Greyhound',
+    'Whippet',
+    'Borzoi',
+    'Afghan Hound',
+    'Saluki',
+    'Malinois',
+    'Bouvier des Flandres',
+  ],
+  'Gato': [
+    'Mestizo',
+    'Persa',
+    'Siamés',
+    'Maine Coon',
+    'Ragdoll',
+    'Bengalí',
+    'Abisinio',
+    'Sphynx',
+    'Scottish Fold',
+    'British Shorthair',
+    'American Shorthair',
+    'Russian Blue',
+    'Birmano',
+    'Noruego del Bosque',
+    'Angora Turco',
+    'Van Turco',
+    'Himalayo',
+    'Devon Rex',
+    'Cornish Rex',
+    'Manx',
+    'Burmés',
+    'Tonkinés',
+    'Somali',
+    'Ocicato',
+    'Savannah',
+    'Chartreux',
+    'Egyptian Mau',
+    'Selkirk Rex',
+    'Exotic Shorthair',
+  ],
+  'Otro': ['No aplica'],
+};
 
 class PetForm extends StatefulWidget {
   final Pet? pet;
@@ -24,6 +115,7 @@ class _PetFormState extends State<PetForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _breedController = TextEditingController();
+  final _ageController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _storyController = TextEditingController();
   final _healthController = TextEditingController();
@@ -56,6 +148,9 @@ class _PetFormState extends State<PetForm> {
       _gender = p.gender;
       _adoptionStatus = p.adoptionStatus;
       _ageMonths = p.ageMonths;
+      if (p.ageMonths != null) {
+        _ageController.text = p.ageMonths.toString();
+      }
       _vaccinated = p.vaccinated;
       _sterilized = p.sterilized;
       _dewormed = p.dewormed;
@@ -67,6 +162,7 @@ class _PetFormState extends State<PetForm> {
   void dispose() {
     _nameController.dispose();
     _breedController.dispose();
+    _ageController.dispose();
     _descriptionController.dispose();
     _storyController.dispose();
     _healthController.dispose();
@@ -152,16 +248,21 @@ class _PetFormState extends State<PetForm> {
                             fit: BoxFit.cover,
                           )
                         : (widget.pet?.mainPhotoUrl != null
-                            ? DecorationImage(
-                                image:
-                                    NetworkImage(widget.pet!.mainPhotoUrl!),
-                                fit: BoxFit.cover,
-                              )
-                            : null),
+                              ? DecorationImage(
+                                  image: NetworkImage(
+                                    widget.pet!.mainPhotoUrl!,
+                                  ),
+                                  fit: BoxFit.cover,
+                                )
+                              : null),
                   ),
-                  child: (_photoFile == null && widget.pet?.mainPhotoUrl == null)
-                      ? const Icon(Icons.add_a_photo,
-                          color: AppColors.primary, size: 36)
+                  child:
+                      (_photoFile == null && widget.pet?.mainPhotoUrl == null)
+                      ? const Icon(
+                          Icons.add_a_photo,
+                          color: AppColors.primary,
+                          size: 36,
+                        )
                       : null,
                 ),
               ),
@@ -173,7 +274,9 @@ class _PetFormState extends State<PetForm> {
                   child: Text(
                     'Foto de la mascota *',
                     style: TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary),
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ),
@@ -183,8 +286,9 @@ class _PetFormState extends State<PetForm> {
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'Nombre *'),
-              validator: (v) =>
-                  v == null || v.trim().isEmpty ? 'El nombre es requerido' : null,
+              validator: (v) => v == null || v.trim().isEmpty
+                  ? 'El nombre es requerido'
+                  : null,
             ),
             const SizedBox(height: 16),
 
@@ -194,7 +298,10 @@ class _PetFormState extends State<PetForm> {
             _ChipGroup(
               options: const ['Perro', 'Gato', 'Otro'],
               selected: _species,
-              onSelected: (v) => setState(() => _species = v),
+              onSelected: (v) => setState(() {
+                _species = v;
+                _breedController.clear();
+              }),
             ),
             const SizedBox(height: 16),
 
@@ -222,23 +329,98 @@ class _PetFormState extends State<PetForm> {
 
             // Edad
             TextFormField(
-              initialValue: _ageMonths?.toString(),
+              controller: _ageController,
               keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: const InputDecoration(
                 labelText: 'Edad en meses',
                 hintText: 'Ej: 6 para 6 meses, 24 para 2 años',
+                helperText: 'Rango permitido: 1 mes a 144 meses (12 años)',
+                helperMaxLines: 2,
               ),
               onChanged: (v) => _ageMonths = int.tryParse(v),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) return null;
+                final age = int.tryParse(value.trim());
+                if (age == null) return 'Ingresa solo números';
+                if (age < 1) return 'La edad mínima es 1 mes';
+                if (age > 144) return 'La edad máxima es 144 meses (12 años)';
+                return null;
+              },
             ),
             const SizedBox(height: 16),
 
-            // Raza
-            TextFormField(
-              controller: _breedController,
-              decoration: const InputDecoration(
-                labelText: 'Raza',
-                hintText: 'Ej: Golden Retriever, Mestizo',
-              ),
+            // Raza con autocomplete
+            Autocomplete<String>(
+              initialValue: TextEditingValue(text: _breedController.text),
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                final breeds = _breedsBySpecies[_species] ?? [];
+                if (textEditingValue.text.isEmpty) {
+                  return breeds;
+                }
+                return breeds.where(
+                  (breed) => breed.toLowerCase().contains(
+                    textEditingValue.text.toLowerCase(),
+                  ),
+                );
+              },
+              onSelected: (String selection) {
+                setState(() {
+                  _breedController.text = selection;
+                });
+              },
+              fieldViewBuilder:
+                  (context, controller, focusNode, onFieldSubmitted) {
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      decoration: const InputDecoration(
+                        labelText: 'Raza',
+                        hintText: 'Escribe para buscar una raza',
+                        prefixIcon: Icon(Icons.search),
+                        helperText: 'Selecciona una raza de la lista',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return null;
+                        final breeds = _breedsBySpecies[_species] ?? [];
+                        if (!breeds.contains(value.trim())) {
+                          return 'Selecciona una raza válida de la lista';
+                        }
+                        return null;
+                      },
+                    );
+                  },
+              optionsViewBuilder: (context, onSelected, options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(12),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final option = options.elementAt(index);
+                          return ListTile(
+                            dense: true,
+                            title: Text(
+                              option,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            onTap: () => onSelected(option),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 16),
 
@@ -409,8 +591,10 @@ class _CheckItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CheckboxListTile(
-      title: Text(label,
-          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
+      title: Text(
+        label,
+        style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+      ),
       value: value,
       onChanged: (v) => onChanged(v ?? false),
       activeColor: AppColors.primary,
