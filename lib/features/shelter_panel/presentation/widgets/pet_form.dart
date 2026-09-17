@@ -6,7 +6,7 @@ import '../../../../../core/theme/app_colors.dart';
 import '../../domain/pet.dart';
 
 const Map<String, List<String>> _breedsBySpecies = {
-  'Perro': [
+  'perro': [
     'Mestizo',
     'Labrador Retriever',
     'Golden Retriever',
@@ -61,7 +61,7 @@ const Map<String, List<String>> _breedsBySpecies = {
     'Malinois',
     'Bouvier des Flandres',
   ],
-  'Gato': [
+  'gato': [
     'Mestizo',
     'Persa',
     'Siamés',
@@ -92,7 +92,7 @@ const Map<String, List<String>> _breedsBySpecies = {
     'Selkirk Rex',
     'Exotic Shorthair',
   ],
-  'Otro': ['No aplica'],
+  'otro': ['No aplica'],
 };
 
 class PetForm extends StatefulWidget {
@@ -114,7 +114,6 @@ class PetForm extends StatefulWidget {
 class _PetFormState extends State<PetForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _breedController = TextEditingController();
   final _ageController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _storyController = TextEditingController();
@@ -130,6 +129,7 @@ class _PetFormState extends State<PetForm> {
   bool _dewormed = false;
   bool _childFriendly = false;
   File? _photoFile;
+  String _selectedBreed = '';
 
   bool get _isEditing => widget.pet != null;
 
@@ -139,14 +139,14 @@ class _PetFormState extends State<PetForm> {
     if (_isEditing) {
       final p = widget.pet!;
       _nameController.text = p.name;
-      _breedController.text = p.breed ?? '';
+      _selectedBreed = p.breed ?? '';
       _descriptionController.text = p.description ?? '';
       _storyController.text = p.story ?? '';
       _healthController.text = p.healthStatus ?? '';
-      _species = p.species;
-      _size = p.size;
-      _gender = p.gender;
-      _adoptionStatus = p.adoptionStatus;
+      _species = p.species.toLowerCase();
+      _size = p.size?.toLowerCase();
+      _gender = p.gender?.toLowerCase();
+      _adoptionStatus = p.adoptionStatus.toLowerCase();
       _ageMonths = p.ageMonths;
       if (p.ageMonths != null) {
         _ageController.text = p.ageMonths.toString();
@@ -161,7 +161,6 @@ class _PetFormState extends State<PetForm> {
   @override
   void dispose() {
     _nameController.dispose();
-    _breedController.dispose();
     _ageController.dispose();
     _descriptionController.dispose();
     _storyController.dispose();
@@ -195,13 +194,11 @@ class _PetFormState extends State<PetForm> {
       id: widget.pet?.id ?? '',
       shelterId: widget.pet?.shelterId ?? '',
       name: _nameController.text.trim(),
-      species: _species,
-      breed: _breedController.text.trim().isEmpty
-          ? null
-          : _breedController.text.trim(),
+      species: _species.toLowerCase(),
+      breed: _selectedBreed.isEmpty ? null : _selectedBreed,
       ageMonths: _ageMonths,
-      size: _size,
-      gender: _gender,
+      size: _size?.toLowerCase(),
+      gender: _gender?.toLowerCase(),
       description: _descriptionController.text.trim().isEmpty
           ? null
           : _descriptionController.text.trim(),
@@ -215,7 +212,7 @@ class _PetFormState extends State<PetForm> {
       sterilized: _sterilized,
       dewormed: _dewormed,
       childFriendly: _childFriendly,
-      adoptionStatus: _adoptionStatus,
+      adoptionStatus: _adoptionStatus.toLowerCase(),
       createdAt: widget.pet?.createdAt ?? DateTime.now(),
     );
 
@@ -298,11 +295,12 @@ class _PetFormState extends State<PetForm> {
               _SectionLabel(label: 'Especie *'),
               const SizedBox(height: 8),
               _ChipGroup(
-                options: const ['Perro', 'Gato', 'Otro'],
+                options: const ['perro', 'gato', 'otro'],
+                labels: const ['Perro', 'Gato', 'Otro'],
                 selected: _species,
                 onSelected: (v) => setState(() {
                   _species = v;
-                  _breedController.clear();
+                  _selectedBreed = '';
                 }),
               ),
               const SizedBox(height: 16),
@@ -311,7 +309,8 @@ class _PetFormState extends State<PetForm> {
               _SectionLabel(label: 'Género'),
               const SizedBox(height: 8),
               _ChipGroup(
-                options: const ['Macho', 'Hembra'],
+                options: const ['macho', 'hembra'],
+                labels: const ['Macho', 'Hembra'],
                 selected: _gender,
                 onSelected: (v) => setState(() => _gender = v),
                 allowDeselect: true,
@@ -322,7 +321,8 @@ class _PetFormState extends State<PetForm> {
               _SectionLabel(label: 'Tamaño'),
               const SizedBox(height: 8),
               _ChipGroup(
-                options: const ['Pequeño', 'Mediano', 'Grande'],
+                options: const ['pequeño', 'mediano', 'grande'],
+                labels: const ['Pequeño', 'Mediano', 'Grande'],
                 selected: _size,
                 onSelected: (v) => setState(() => _size = v),
                 allowDeselect: true,
@@ -353,9 +353,11 @@ class _PetFormState extends State<PetForm> {
               const SizedBox(height: 16),
 
               // Raza con autocomplete
+              _SectionLabel(label: 'Raza'),
+              const SizedBox(height: 8),
               Autocomplete<String>(
                 key: ValueKey(_species),
-                initialValue: TextEditingValue(text: _breedController.text),
+                initialValue: TextEditingValue(text: _selectedBreed),
                 optionsBuilder: (TextEditingValue textEditingValue) {
                   final breeds = _breedsBySpecies[_species] ?? [];
                   if (textEditingValue.text.isEmpty) {
@@ -368,9 +370,7 @@ class _PetFormState extends State<PetForm> {
                   );
                 },
                 onSelected: (String selection) {
-                  setState(() {
-                    _breedController.text = selection;
-                  });
+                  setState(() => _selectedBreed = selection);
                   FocusScope.of(context).unfocus();
                 },
                 fieldViewBuilder:
@@ -379,18 +379,19 @@ class _PetFormState extends State<PetForm> {
                         controller: controller,
                         focusNode: focusNode,
                         decoration: const InputDecoration(
-                          labelText: 'Raza',
                           hintText: 'Escribe para buscar una raza',
                           prefixIcon: Icon(Icons.search),
                           helperText: 'Selecciona una raza de la lista',
                         ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty)
+                          if (value == null || value.trim().isEmpty) {
                             return null;
+                          }
                           final breeds = _breedsBySpecies[_species] ?? [];
                           if (!breeds.contains(value.trim())) {
                             return 'Selecciona una raza válida de la lista';
                           }
+                          _selectedBreed = value.trim();
                           return null;
                         },
                       );
@@ -461,7 +462,7 @@ class _PetFormState extends State<PetForm> {
               ),
               const SizedBox(height: 20),
 
-              // Checkboxes de salud
+              // Checkboxes
               _SectionLabel(label: 'Condiciones'),
               _CheckItem(
                 label: 'Vacunado',
