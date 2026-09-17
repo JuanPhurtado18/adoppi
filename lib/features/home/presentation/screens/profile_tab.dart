@@ -1,13 +1,15 @@
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../../data/home_repository.dart';
 import '../../../../shared/services/notification_service.dart';
-import 'package:flutter/services.dart';
 
 // ── Ciudades de Colombia ───────────────────────────────────────────────────
 const _colombianCities = [
@@ -71,13 +73,11 @@ final adoptantProfileProvider = FutureProvider<Map<String, dynamic>?>((
 ) async {
   final userId = Supabase.instance.client.auth.currentUser?.id;
   if (userId == null) return null;
-
   final response = await Supabase.instance.client
       .from('profiles')
       .select()
       .eq('id', userId)
       .maybeSingle();
-
   return response;
 });
 
@@ -93,27 +93,82 @@ class AdoptantProfileTab extends ConsumerStatefulWidget {
 
 class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
   bool _preferencesLoaded = false;
+  bool _isUploadingPhoto = false;
 
   void _loadPreferences(Map<String, dynamic>? profile) {
     if (_preferencesLoaded || profile == null) return;
-
     final prefs = profile['pet_preferences'];
     if (prefs != null) {
-      // Corregido: usar directamente sin variable intermedia
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(petPreferencesProvider.notifier).state = (prefs as List)
             .map((e) => e.toString())
             .toList();
       });
     }
-
-    // Inicializar notificaciones con valor real de Supabase
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final enabled = profile['notifications_enabled'] as bool? ?? true;
       ref.read(notificationsEnabledProvider.notifier).state = enabled;
     });
-
     _preferencesLoaded = true;
+  }
+
+  Future<void> _pickAndUpdatePhoto() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 80,
+    );
+    if (picked == null) return;
+
+    setState(() => _isUploadingPhoto = true);
+
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final file = File(picked.path);
+      final fileExt = picked.path.split('.').last;
+      final filePath = '$userId/avatar.$fileExt';
+
+      await Supabase.instance.client.storage
+          .from('avatars')
+          .upload(filePath, file, fileOptions: const FileOptions(upsert: true));
+
+      final url = Supabase.instance.client.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final urlWithVersion = '$url?v=$timestamp';
+
+      await Supabase.instance.client
+          .from('profiles')
+          .update({'avatar_url': urlWithVersion})
+          .eq('id', userId);
+
+      ref.invalidate(adoptantProfileProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto actualizada exitosamente'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al actualizar la foto'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
   }
 
   Future<void> _openEditProfile(Map<String, dynamic>? profile) async {
@@ -262,18 +317,15 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                       final userId =
                           Supabase.instance.client.auth.currentUser?.id;
                       if (userId == null) return;
-
                       await ref
                           .read(homeRepositoryProvider)
                           .updatePetPreferences(
                             userId: userId,
                             preferences: temp,
                           );
-
                       ref.read(petPreferencesProvider.notifier).state =
                           List.from(temp);
                       ref.invalidate(adoptantProfileProvider);
-
                       if (context.mounted) {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -363,7 +415,14 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                                   ),
                                 ),
                                 child: ClipOval(
-                                  child: profile?['avatar_url'] != null
+                                  child: _isUploadingPhoto
+                                      ? const Center(
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : profile?['avatar_url'] != null
                                       ? CachedNetworkImage(
                                           imageUrl: profile!['avatar_url'],
                                           fit: BoxFit.cover,
@@ -391,24 +450,30 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                                         ),
                                 ),
                               ),
+                              // Botón cámara — ahora funcional
                               Positioned(
                                 bottom: 0,
                                 right: 0,
-                                child: Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.primary,
-                                      width: 2,
+                                child: GestureDetector(
+                                  onTap: _isUploadingPhoto
+                                      ? null
+                                      : _pickAndUpdatePhoto,
+                                  child: Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: AppColors.primary,
+                                        width: 2,
+                                      ),
                                     ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.camera_alt,
-                                    color: AppColors.primary,
-                                    size: 14,
+                                    child: const Icon(
+                                      Icons.camera_alt,
+                                      color: AppColors.primary,
+                                      size: 14,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -468,7 +533,7 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                       ),
                       const SizedBox(height: 12),
                       selectedPreferences.isEmpty
-                          ? Text(
+                          ? const Text(
                               'No tienes preferencias configuradas',
                               style: TextStyle(
                                 fontSize: 13,
@@ -689,7 +754,6 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
 
                 const SizedBox(height: 16),
 
-                // Version
                 Center(
                   child: Column(
                     children: [
@@ -718,6 +782,18 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                           ),
                           Text(
                             ' for pets',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Text(
+                            'Juan trujillo © 2026 Adoppi',
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.textHint,
@@ -758,7 +834,6 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
   late final TextEditingController _cityController;
   bool _isSaving = false;
 
-  // Ciudad
   String? _selectedCity;
   List<String> _citySuggestions = [];
 
@@ -777,7 +852,6 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
     _cityController = TextEditingController(
       text: widget.profile?['city'] ?? '',
     );
-    // Pre-cargar ciudad si ya existe
     final existingCity = widget.profile?['city'] as String?;
     if (existingCity != null && existingCity.isNotEmpty) {
       _selectedCity = existingCity;
@@ -897,8 +971,6 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
             ),
             const Divider(),
             const SizedBox(height: 12),
-
-            // Nombre
             _ProfileField(
               controller: _fullNameController,
               label: 'Nombre',
@@ -907,16 +979,12 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
                   (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
             ),
             const SizedBox(height: 12),
-
-            // Apellido
             _ProfileField(
               controller: _lastNameController,
               label: 'Apellido',
               icon: Icons.person_outline,
             ),
             const SizedBox(height: 12),
-
-            // Teléfono — solo números
             TextFormField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
@@ -945,8 +1013,6 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
               ),
             ),
             const SizedBox(height: 12),
-
-            // Ciudad con autocomplete
             TextFormField(
               controller: _cityController,
               onChanged: _onCityChanged,
@@ -1024,7 +1090,6 @@ class _EditProfileModalState extends ConsumerState<_EditProfileModal> {
                   },
                 ),
               ),
-
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _isSaving ? null : _save,
@@ -1354,10 +1419,9 @@ class _HelpSupportModal extends StatelessWidget {
                   const _FaqTile(
                     question: '¿Cómo configuro mis preferencias de mascotas?',
                     answer:
-                        'Ve a tu perfil y toca "Preferencia de mascotas" en la sección de '
-                        'configuración. Allí puedes seleccionar el tipo de mascota y el '
-                        'rango de edad que prefieres. Esto ayuda a Adoppi a mostrarte '
-                        'las mascotas más relevantes para ti.',
+                        'Ve a tu perfil y toca "Preferencia de mascotas" en la sección '
+                        'de configuración. Allí puedes seleccionar el tipo de mascota y '
+                        'el rango de edad que prefieres.',
                   ),
                   const SizedBox(height: 24),
                   const _SectionLabel(label: 'Para refugios'),
@@ -1367,8 +1431,7 @@ class _HelpSupportModal extends StatelessWidget {
                     answer:
                         'Desde tu panel de refugio, toca el botón "+" o "Agregar '
                         'mascota". Completa el formulario con fotos, nombre, edad, '
-                        'raza, género, estado de salud y descripción. Una vez publicada, '
-                        'aparecerá en el catálogo de Adoppi.',
+                        'raza, género, estado de salud y descripción.',
                   ),
                   const _FaqTile(
                     question: '¿Cómo edito o elimino una mascota publicada?',
@@ -1392,8 +1455,7 @@ class _HelpSupportModal extends StatelessWidget {
                     answer:
                         'Si encuentras un error o comportamiento inesperado en la app, '
                         'escríbenos a adoppi0908@gmail.com con el asunto "Problema '
-                        'técnico". Describe lo que ocurrió, en qué pantalla y, si '
-                        'puedes, adjunta una captura de pantalla.',
+                        'técnico".',
                   ),
                   const SizedBox(height: 24),
                   const _SectionLabel(label: 'Contacto'),
