@@ -183,9 +183,43 @@ class _PetFormState extends State<PetForm> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_gender == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El género es requerido'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (_size == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El tamaño es requerido'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedBreed.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La raza es requerida'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     if (!_isEditing && _photoFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona una foto de la mascota')),
+        const SnackBar(
+          content: Text('Selecciona una foto de la mascota'),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
     }
@@ -306,7 +340,7 @@ class _PetFormState extends State<PetForm> {
               const SizedBox(height: 16),
 
               // Género
-              _SectionLabel(label: 'Género'),
+              _SectionLabel(label: 'Género *'),
               const SizedBox(height: 8),
               _ChipGroup(
                 options: const ['macho', 'hembra'],
@@ -318,7 +352,7 @@ class _PetFormState extends State<PetForm> {
               const SizedBox(height: 16),
 
               // Tamaño
-              _SectionLabel(label: 'Tamaño'),
+              _SectionLabel(label: 'Tamaño *'),
               const SizedBox(height: 8),
               _ChipGroup(
                 options: const ['pequeño', 'mediano', 'grande'],
@@ -335,14 +369,16 @@ class _PetFormState extends State<PetForm> {
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
-                  labelText: 'Edad en meses',
+                  labelText: 'Edad en meses *',
                   hintText: 'Ej: 6 para 6 meses, 24 para 2 años',
                   helperText: 'Rango permitido: 1 mes a 144 meses (12 años)',
                   helperMaxLines: 2,
                 ),
                 onChanged: (v) => _ageMonths = int.tryParse(v),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) return null;
+                  if (value == null || value.trim().isEmpty) {
+                    return 'La edad es requerida';
+                  }
                   final age = int.tryParse(value.trim());
                   if (age == null) return 'Ingresa solo números';
                   if (age < 1) return 'La edad mínima es 1 mes';
@@ -353,7 +389,7 @@ class _PetFormState extends State<PetForm> {
               const SizedBox(height: 16),
 
               // Raza con autocomplete
-              _SectionLabel(label: 'Raza'),
+              _SectionLabel(label: 'Raza *'),
               const SizedBox(height: 8),
               Autocomplete<String>(
                 key: ValueKey(_species),
@@ -435,9 +471,12 @@ class _PetFormState extends State<PetForm> {
                 controller: _descriptionController,
                 maxLines: 3,
                 decoration: const InputDecoration(
-                  labelText: 'Descripción',
+                  labelText: 'Descripción *',
                   hintText: 'Cuéntanos sobre la personalidad de la mascota',
                 ),
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'La descripción es requerida'
+                    : null,
               ),
               const SizedBox(height: 16),
 
@@ -446,9 +485,12 @@ class _PetFormState extends State<PetForm> {
                 controller: _storyController,
                 maxLines: 3,
                 decoration: const InputDecoration(
-                  labelText: 'Historia',
+                  labelText: 'Historia *',
                   hintText: '¿Cómo llegó al refugio?',
                 ),
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'La historia es requerida'
+                    : null,
               ),
               const SizedBox(height: 16),
 
@@ -456,9 +498,12 @@ class _PetFormState extends State<PetForm> {
               TextFormField(
                 controller: _healthController,
                 decoration: const InputDecoration(
-                  labelText: 'Estado de salud',
+                  labelText: 'Estado de salud *',
                   hintText: 'Ej: Excelente, en tratamiento por...',
                 ),
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'El estado de salud es requerido'
+                    : null,
               ),
               const SizedBox(height: 20),
 

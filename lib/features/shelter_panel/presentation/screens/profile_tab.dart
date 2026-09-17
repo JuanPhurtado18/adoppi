@@ -511,6 +511,18 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                       ),
                     ],
                   ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Text(
+                        'Juan trujillo © 2026 Adoppi',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textHint,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
