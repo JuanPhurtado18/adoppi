@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/pet_detail_repository.dart';
 import '../../../shelter_panel/domain/shelter.dart';
@@ -15,6 +16,28 @@ class ShelterDetailScreen extends ConsumerWidget {
   final String shelterId;
 
   const ShelterDetailScreen({super.key, required this.shelterId});
+
+  Future<void> _openGoogleMaps(Shelter shelter) async {
+    Uri uri;
+
+    // Si tiene coordenadas usar lat/lng, si no usar la dirección como texto
+    if (shelter.latitude != null && shelter.longitude != null) {
+      uri = Uri.parse(
+        'https://www.google.com/maps/search/?api=1&query=${shelter.latitude},${shelter.longitude}',
+      );
+    } else if (shelter.address != null) {
+      final query = Uri.encodeComponent(
+        '${shelter.address}, ${shelter.city ?? ''}, Colombia',
+      );
+      uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
+    } else {
+      return;
+    }
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -156,10 +179,10 @@ class ShelterDetailScreen extends ConsumerWidget {
                                   Supabase.instance.client.auth.currentUser;
                               if (user == null) return;
 
-                              final shelter = ref
+                              final shelterData = ref
                                   .read(shelterByIdProvider(shelterId))
                                   .value;
-                              if (shelter == null) return;
+                              if (shelterData == null) return;
 
                               try {
                                 final conversation = await ref
@@ -205,14 +228,11 @@ class ShelterDetailScreen extends ConsumerWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Próximamente'),
-                                  backgroundColor: AppColors.primary,
-                                ),
-                              );
-                            },
+                            onPressed:
+                                (shelter.address != null ||
+                                    shelter.latitude != null)
+                                ? () => _openGoogleMaps(shelter)
+                                : null,
                             icon: const Icon(
                               Icons.directions_outlined,
                               size: 18,
