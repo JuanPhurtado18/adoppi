@@ -5,6 +5,7 @@ import '../controllers/pet_controller.dart';
 import '../widgets/pet_card.dart';
 import '../widgets/pet_form.dart';
 import '../../domain/pet.dart';
+import '../../../../../features/notifications/presentation/notification_bell.dart';
 
 class PetsTab extends ConsumerWidget {
   final String shelterId;
@@ -15,10 +16,7 @@ class PetsTab extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (modalContext) => _PetFormModal(
-        shelterId: shelterId,
-        pet: pet,
-      ),
+      builder: (modalContext) => _PetFormModal(shelterId: shelterId, pet: pet),
     );
   }
 
@@ -28,7 +26,8 @@ class PetsTab extends ConsumerWidget {
       builder: (_) => AlertDialog(
         title: const Text('Eliminar mascota'),
         content: Text(
-            '¿Estás seguro que quieres eliminar a ${pet.name}? Esta acción no se puede deshacer.'),
+          '¿Estás seguro que quieres eliminar a ${pet.name}? Esta acción no se puede deshacer.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -49,8 +48,7 @@ class PetsTab extends ConsumerWidget {
                 );
               }
             },
-            style:
-                ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Eliminar'),
           ),
         ],
@@ -68,50 +66,95 @@ class PetsTab extends ConsumerWidget {
         onPressed: () => _openPetForm(context, ref),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Agregar',
-            style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        label: const Text(
+          'Agregar',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
       ),
-      body: state.isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary))
-          : state.pets.isEmpty
-              ? const Center(
+      body: Column(
+        children: [
+          // Header morado
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 52, 20, 20),
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.pets, size: 64, color: AppColors.textHint),
-                      SizedBox(height: 16),
-                      Text(
-                        'Aún no tienes mascotas publicadas',
+                      const Text(
+                        'Adoppi',
                         style: TextStyle(
-                          fontSize: 15,
-                          color: AppColors.textSecondary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                      SizedBox(height: 8),
                       Text(
-                        'Toca el botón + para agregar tu primera mascota',
+                        'Mis Mascotas',
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.textHint,
+                          color: Colors.white.withOpacity(0.85),
                         ),
                       ),
                     ],
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                  itemCount: state.pets.length,
-                  itemBuilder: (context, index) {
-                    final pet = state.pets[index];
-                    return PetCard(
-                      pet: pet,
-                      onEdit: () => _openPetForm(context, ref, pet: pet),
-                      onDelete: () => _confirmDelete(context, ref, pet),
-                    );
-                  },
                 ),
+                const NotificationBell(iconColor: Colors.white),
+              ],
+            ),
+          ),
+
+          // Contenido
+          Expanded(
+            child: state.isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
+                : state.pets.isEmpty
+                ? const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.pets, size: 64, color: AppColors.textHint),
+                        SizedBox(height: 16),
+                        Text(
+                          'Aún no tienes mascotas publicadas',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Toca el botón + para agregar tu primera mascota',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                    itemCount: state.pets.length,
+                    itemBuilder: (context, index) {
+                      final pet = state.pets[index];
+                      return PetCard(
+                        pet: pet,
+                        onEdit: () => _openPetForm(context, ref, pet: pet),
+                        onDelete: () => _confirmDelete(context, ref, pet),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -120,10 +163,7 @@ class _PetFormModal extends ConsumerWidget {
   final String shelterId;
   final Pet? pet;
 
-  const _PetFormModal({
-    required this.shelterId,
-    this.pet,
-  });
+  const _PetFormModal({required this.shelterId, this.pet});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -165,8 +205,9 @@ class _PetFormModal extends ConsumerWidget {
               pet: pet,
               isSaving: state.isSaving,
               onSubmit: (petData, photoFile) async {
-                final controller =
-                    ref.read(petControllerProvider(shelterId).notifier);
+                final controller = ref.read(
+                  petControllerProvider(shelterId).notifier,
+                );
                 bool success;
                 if (pet == null) {
                   success = await controller.createPet(
@@ -184,9 +225,11 @@ class _PetFormModal extends ConsumerWidget {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(pet == null
-                          ? 'Mascota publicada exitosamente'
-                          : 'Mascota actualizada exitosamente'),
+                      content: Text(
+                        pet == null
+                            ? 'Mascota publicada exitosamente'
+                            : 'Mascota actualizada exitosamente',
+                      ),
                       backgroundColor: AppColors.success,
                     ),
                   );

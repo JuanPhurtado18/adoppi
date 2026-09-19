@@ -43,28 +43,6 @@ class _ShelterPanelScreenState extends ConsumerState<ShelterPanelScreen> {
     final titles = ['Mis Mascotas', 'Solicitudes', 'Mensajes', 'Mi Refugio'];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(titles[_currentIndex]),
-        actions: [
-          if (_currentIndex == 0 && shelter != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Center(
-                child: Text(
-                  shelterState.shelter?.name ?? '',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          const Padding(
-            padding: EdgeInsets.only(right: 8),
-            child: NotificationBell(),
-          ),
-        ],
-      ),
       body: tabs[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,

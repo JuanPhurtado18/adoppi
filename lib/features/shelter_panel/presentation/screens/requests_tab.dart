@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../features/pet_detail/data/adoption_request_repository.dart';
+import '../../../../../features/notifications/presentation/notification_bell.dart';
 
 final shelterRequestsProvider =
     FutureProvider.family<List<Map<String, dynamic>>, String>((
@@ -23,71 +24,118 @@ class RequestsTab extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: requestsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-        error: (e, _) => Center(
-          child: Text(
-            'Error al cargar solicitudes',
-            style: TextStyle(color: AppColors.error),
-          ),
-        ),
-        data: (requests) => requests.isEmpty
-            ? const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.inbox_outlined,
-                      size: 64,
-                      color: AppColors.textHint,
-                    ),
-                    SizedBox(height: 16),
-                    Text(
-                      'No tienes solicitudes aún',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: AppColors.textSecondary,
+      body: Column(
+        children: [
+          // Header morado
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 52, 20, 20),
+            decoration: const BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Adoppi',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ],
+                      Text(
+                        'Solicitudes',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.85),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              )
-            : RefreshIndicator(
-                color: AppColors.primary,
-                onRefresh: () async {
-                  ref.invalidate(shelterRequestsProvider(shelterId));
-                },
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: requests.length,
-                  itemBuilder: (context, index) {
-                    final request = requests[index];
-                    return _RequestCard(
-                      request: request,
-                      onApprove: () async {
-                        await ref
-                            .read(adoptionRequestRepositoryProvider)
-                            .approveRequest(
-                              requestId: request['id'],
-                              petId: request['pet_id'],
-                            );
-                        ref.invalidate(shelterRequestsProvider(shelterId));
-                      },
-                      onReject: () async {
-                        await ref
-                            .read(adoptionRequestRepositoryProvider)
-                            .rejectRequest(
-                              requestId: request['id'],
-                              petId: request['pet_id'],
-                            );
-                        ref.invalidate(shelterRequestsProvider(shelterId));
-                      },
-                    );
-                  },
+                const NotificationBell(iconColor: Colors.white),
+              ],
+            ),
+          ),
+
+          // Lista
+          Expanded(
+            child: requestsAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+              error: (e, _) => Center(
+                child: Text(
+                  'Error al cargar solicitudes',
+                  style: TextStyle(color: AppColors.error),
                 ),
               ),
+              data: (requests) => requests.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.inbox_outlined,
+                            size: 64,
+                            color: AppColors.textHint,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'No tienes solicitudes aún',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: () async {
+                        ref.invalidate(shelterRequestsProvider(shelterId));
+                      },
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: requests.length,
+                        itemBuilder: (context, index) {
+                          final request = requests[index];
+                          return _RequestCard(
+                            request: request,
+                            onApprove: () async {
+                              await ref
+                                  .read(adoptionRequestRepositoryProvider)
+                                  .approveRequest(
+                                    requestId: request['id'],
+                                    petId: request['pet_id'],
+                                  );
+                              ref.invalidate(
+                                shelterRequestsProvider(shelterId),
+                              );
+                            },
+                            onReject: () async {
+                              await ref
+                                  .read(adoptionRequestRepositoryProvider)
+                                  .rejectRequest(
+                                    requestId: request['id'],
+                                    petId: request['pet_id'],
+                                  );
+                              ref.invalidate(
+                                shelterRequestsProvider(shelterId),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -139,7 +187,6 @@ class _RequestCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              // Avatar adoptante
               CircleAvatar(
                 radius: 24,
                 backgroundColor: AppColors.divider,
@@ -190,8 +237,6 @@ class _RequestCard extends StatelessWidget {
               ),
             ],
           ),
-
-          // Foto de la mascota
           if (pet['main_photo_url'] != null) ...[
             const SizedBox(height: 12),
             Row(
@@ -235,8 +280,6 @@ class _RequestCard extends StatelessWidget {
               ],
             ),
           ],
-
-          // Mensaje del adoptante
           if (request['message'] != null &&
               (request['message'] as String).isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -251,8 +294,6 @@ class _RequestCard extends StatelessWidget {
               ),
             ),
           ],
-
-          // Botones de acción
           if (status == 'pendiente') ...[
             const SizedBox(height: 12),
             Row(
