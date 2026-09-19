@@ -6,13 +6,13 @@ import 'pets_tab.dart';
 import 'requests_tab.dart';
 import 'profile_tab.dart';
 import '../../../../features/chat/presentation/screens/conversations_screen.dart';
-import '../../../../features/notifications/presentation/notification_bell.dart';
 
 class ShelterPanelScreen extends ConsumerStatefulWidget {
   const ShelterPanelScreen({super.key});
 
   @override
-  ConsumerState<ShelterPanelScreen> createState() => _ShelterPanelScreenState();
+  ConsumerState<ShelterPanelScreen> createState() =>
+      _ShelterPanelScreenState();
 }
 
 class _ShelterPanelScreenState extends ConsumerState<ShelterPanelScreen> {
@@ -36,11 +36,12 @@ class _ShelterPanelScreenState extends ConsumerState<ShelterPanelScreen> {
     final tabs = [
       PetsTab(shelterId: shelterId),
       RequestsTab(shelterId: shelterId),
-      ConversationsScreen(isShelter: true, shelterId: shelterId),
+      ConversationsScreen(
+        isShelter: true,
+        shelterId: shelterId,
+      ),
       const ProfileTab(),
     ];
-
-    final titles = ['Mis Mascotas', 'Solicitudes', 'Mensajes', 'Mi Refugio'];
 
     return Scaffold(
       body: tabs[_currentIndex],
@@ -48,7 +49,10 @@ class _ShelterPanelScreenState extends ConsumerState<ShelterPanelScreen> {
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.pets), label: 'Mascotas'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.pets),
+            label: 'Mascotas',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.favorite_border),
             label: 'Solicitudes',

@@ -149,21 +149,38 @@ class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
                   const Center(child: Text('Error al cargar conversaciones')),
               data: (conversations) {
                 if (conversations.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: AppColors.textHint,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'No tienes conversaciones aún',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: AppColors.textSecondary,
+                  return RefreshIndicator(
+                    color: AppColors.primary,
+                    onRefresh: () async {
+                      if (widget.isShelter && widget.shelterId != null) {
+                        ref.invalidate(
+                          shelterConversationsProvider(widget.shelterId!),
+                        );
+                      } else {
+                        ref.invalidate(adoptantConversationsProvider);
+                      }
+                    },
+                    child: ListView(
+                      children: const [
+                        SizedBox(height: 100),
+                        Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 64,
+                                color: AppColors.textHint,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'No tienes conversaciones aún',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
