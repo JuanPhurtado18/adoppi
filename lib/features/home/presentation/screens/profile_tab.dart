@@ -11,7 +11,6 @@ import '../../../../core/router/app_router.dart';
 import '../../data/home_repository.dart';
 import '../../../../shared/services/notification_service.dart';
 
-// ── Ciudades de Colombia ───────────────────────────────────────────────────
 const _colombianCities = [
   'Bogotá',
   'Medellín',
@@ -370,14 +369,12 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header morado
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 48, 20, 32),
                   color: AppColors.primary,
                   child: Stack(
                     children: [
-                      // Botón editar esquina superior derecha
                       Positioned(
                         top: 0,
                         right: 0,
@@ -398,7 +395,6 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                           ),
                         ),
                       ),
-                      // Contenido del header centrado
                       Column(
                         children: [
                           Stack(
@@ -450,7 +446,6 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                                         ),
                                 ),
                               ),
-                              // Botón cámara — ahora funcional
                               Positioned(
                                 bottom: 0,
                                 right: 0,
@@ -517,7 +512,6 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
 
                 const SizedBox(height: 20),
 
-                // Sección Pet Preferences
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
@@ -578,7 +572,6 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
 
                 const SizedBox(height: 24),
 
-                // Settings
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: Text(
@@ -691,6 +684,25 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                       Material(
                         color: Colors.transparent,
                         child: _SettingsTile(
+                          icon: Icons.info_outline,
+                          label: 'Acerca de Adoppi',
+                          trailing: const Icon(
+                            Icons.chevron_right,
+                            color: AppColors.textHint,
+                            size: 20,
+                          ),
+                          onTap: () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => const _AboutModal(),
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      Material(
+                        color: Colors.transparent,
+                        child: _SettingsTile(
                           icon: Icons.shield_outlined,
                           label: 'Privacidad & seguridad',
                           trailing: const Icon(
@@ -734,7 +746,6 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
 
                 const SizedBox(height: 24),
 
-                // Log Out
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: OutlinedButton.icon(
@@ -782,18 +793,6 @@ class _AdoptantProfileTabState extends ConsumerState<AdoptantProfileTab> {
                           ),
                           Text(
                             ' for pets',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textHint,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Text(
-                            'Juan trujillo © 2026 Adoppi',
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.textHint,
@@ -1152,6 +1151,284 @@ class _ProfileField extends StatelessWidget {
   }
 }
 
+// ── Modal Acerca de Adoppi ─────────────────────────────────────────────────
+
+class _AboutModal extends StatelessWidget {
+  const _AboutModal();
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.5,
+      maxChildSize: 0.9,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
+              child: Row(
+                children: [
+                  const Text(
+                    'Acerca de Adoppi',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: ListView(
+                controller: controller,
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Center(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.favorite,
+                            color: Colors.white,
+                            size: 40,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Adoppi',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const Text(
+                          'Versión 1.0.0',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  _AboutSection(
+                    icon: Icons.info_outline,
+                    title: 'Sobre la aplicación',
+                    content:
+                        'Adoppi es una iniciativa escolar desarrollada con el '
+                        'propósito de conectar refugios de animales con personas '
+                        'interesadas en adoptar mascotas en Colombia. '
+                        'La aplicación busca facilitar el proceso de adopción '
+                        'responsable, dándoles una segunda oportunidad a perros '
+                        'y gatos que necesitan un hogar.',
+                  ),
+                  const SizedBox(height: 16),
+                  _AboutSection(
+                    icon: Icons.school_outlined,
+                    title: 'Institución educativa',
+                    content: 'Colegio Rafael Navia Varón',
+                  ),
+                  const SizedBox(height: 16),
+                  _AboutSection(
+                    icon: Icons.person_outline,
+                    title: 'Autor',
+                    content: 'Juan Stevan Trujillo',
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.mail_outline,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Contacto',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'adoppi0908@gmail.com',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Text(
+                              'Made with ',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textHint,
+                              ),
+                            ),
+                            Icon(
+                              Icons.favorite,
+                              color: AppColors.error,
+                              size: 12,
+                            ),
+                            Text(
+                              ' for pets',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textHint,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          '© 2026 Adoppi — Todos los derechos reservados',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AboutSection extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String content;
+
+  const _AboutSection({
+    required this.icon,
+    required this.title,
+    required this.content,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  content,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Modal Privacy & Safety ─────────────────────────────────────────────────
 
 class _PrivacySafetyModal extends StatelessWidget {
@@ -1398,8 +1675,7 @@ class _HelpSupportModal extends StatelessWidget {
                     answer:
                         'Puedes contactar a un refugio desde el perfil de cualquier '
                         'mascota tocando el botón "Me interesa", o directamente desde '
-                        'el perfil del refugio tocando "Contactar Refugio". Esto abrirá '
-                        'el chat interno de Adoppi.',
+                        'el perfil del refugio tocando "Contactar Refugio".',
                   ),
                   const _FaqTile(
                     question: '¿Cómo funciona el chat?',
@@ -1407,7 +1683,7 @@ class _HelpSupportModal extends StatelessWidget {
                         'El chat de Adoppi es un sistema de mensajería interno que '
                         'conecta adoptantes y refugios de forma segura. Los mensajes '
                         'son privados y solo los participantes de la conversación pueden '
-                        'verlos. Recibirás una notificación cuando el refugio responda.',
+                        'verlos.',
                   ),
                   const _FaqTile(
                     question: '¿Puedo eliminar una conversación?',
@@ -1420,32 +1696,7 @@ class _HelpSupportModal extends StatelessWidget {
                     question: '¿Cómo configuro mis preferencias de mascotas?',
                     answer:
                         'Ve a tu perfil y toca "Preferencia de mascotas" en la sección '
-                        'de configuración. Allí puedes seleccionar el tipo de mascota y '
-                        'el rango de edad que prefieres.',
-                  ),
-                  const SizedBox(height: 24),
-                  const _SectionLabel(label: 'Para refugios'),
-                  const SizedBox(height: 12),
-                  const _FaqTile(
-                    question: '¿Cómo publico una mascota?',
-                    answer:
-                        'Desde tu panel de refugio, toca el botón "+" o "Agregar '
-                        'mascota". Completa el formulario con fotos, nombre, edad, '
-                        'raza, género, estado de salud y descripción.',
-                  ),
-                  const _FaqTile(
-                    question: '¿Cómo edito o elimino una mascota publicada?',
-                    answer:
-                        'Entra al perfil de la mascota desde tu panel de gestión y '
-                        'toca el ícono de editar (lápiz) para modificar la información, '
-                        'o el ícono de eliminar para retirarla del catálogo.',
-                  ),
-                  const _FaqTile(
-                    question: '¿Cómo actualizo la información de mi refugio?',
-                    answer:
-                        'Desde tu perfil de refugio, toca el ícono de editar en la '
-                        'parte superior. Podrás actualizar el nombre, descripción, '
-                        'dirección, horario, teléfono y foto del refugio.',
+                        'de configuración.',
                   ),
                   const SizedBox(height: 24),
                   const _SectionLabel(label: 'Reportar un problema'),
@@ -1453,9 +1704,8 @@ class _HelpSupportModal extends StatelessWidget {
                   const _FaqTile(
                     question: '¿Cómo reporto un problema técnico?',
                     answer:
-                        'Si encuentras un error o comportamiento inesperado en la app, '
-                        'escríbenos a adoppi0908@gmail.com con el asunto "Problema '
-                        'técnico".',
+                        'Escríbenos a adoppi0908@gmail.com con el asunto "Problema '
+                        'técnico". Describe lo que ocurrió y adjunta una captura si puedes.',
                   ),
                   const SizedBox(height: 24),
                   const _SectionLabel(label: 'Contacto'),
@@ -1533,7 +1783,6 @@ class _HelpSupportModal extends StatelessWidget {
 
 class _SectionLabel extends StatelessWidget {
   final String label;
-
   const _SectionLabel({required this.label});
 
   @override
@@ -1553,7 +1802,6 @@ class _SectionLabel extends StatelessWidget {
 class _FaqTile extends StatefulWidget {
   final String question;
   final String answer;
-
   const _FaqTile({required this.question, required this.answer});
 
   @override
@@ -1635,8 +1883,6 @@ class _FaqTileState extends State<_FaqTile> {
     );
   }
 }
-
-// ── Widgets reutilizables ──────────────────────────────────────────────────
 
 class _PreferenceChip extends StatelessWidget {
   final String label;
