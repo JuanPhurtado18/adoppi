@@ -4,10 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/router/app_router.dart';
 import '../controllers/shelter_controller.dart';
+import '../screens/location_picker_screen.dart';
 import '../../../../shared/services/notification_service.dart';
 
 // ── Ciudades de Colombia ───────────────────────────────────────────────────
@@ -573,6 +575,10 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
   late TimeOfDay _openTime;
   late TimeOfDay _closeTime;
 
+  // Ubicación en mapa
+  double? _pickedLat;
+  double? _pickedLon;
+
   String get _scheduleText {
     if (_selectedDays.isEmpty) return '';
     final days = _allDays.where((d) => _selectedDays.contains(d)).toList();
@@ -595,7 +601,6 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
     return '$hour:$minute $period';
   }
 
-  // Parsear horario existente para pre-cargar los valores
   void _parseExistingSchedule(String? schedule) {
     _selectedDays = {};
     _openTime = const TimeOfDay(hour: 9, minute: 0);
@@ -604,8 +609,6 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
     if (schedule == null || schedule.isEmpty) return;
 
     try {
-      // Intentar extraer días y horas del texto guardado
-      // Formato esperado: "Lun-Sáb 9:00 AM - 6:00 PM"
       final timeRegex = RegExp(
         r'(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)',
         caseSensitive: false,
@@ -628,7 +631,6 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
         _closeTime = TimeOfDay(hour: closeHour, minute: closeMin);
       }
 
-      // Extraer días
       final daysPart = schedule.split(RegExp(r'\d')).first.trim();
       if (daysPart.contains('-')) {
         final parts = daysPart.split('-');
@@ -654,9 +656,7 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
           }
         }
       }
-    } catch (_) {
-      // Si falla el parsing, usar valores por defecto
-    }
+    } catch (_) {}
   }
 
   @override
@@ -720,6 +720,25 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
     }
   }
 
+  Future<void> _openLocationPicker() async {
+    final result = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(
+          initialLat: _pickedLat ?? widget.shelter.latitude,
+          initialLon: _pickedLon ?? widget.shelter.longitude,
+          cityName: _selectedCity ?? widget.shelter.city,
+        ),
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _pickedLat = result.latitude;
+        _pickedLon = result.longitude;
+      });
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCity == null) {
@@ -752,6 +771,8 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
           'city': _selectedCity!,
           'phone': _phoneController.text.trim(),
           'schedule': _scheduleText,
+          if (_pickedLat != null) 'latitude': _pickedLat,
+          if (_pickedLon != null) 'longitude': _pickedLon,
         });
 
     if (mounted) {
@@ -778,6 +799,7 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final hasLocation = _pickedLat != null || widget.shelter.latitude != null;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
@@ -844,15 +866,15 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
               ),
               const SizedBox(height: 12),
 
-              // Dirección con validación de formato
+              // Dirección
               TextFormField(
                 controller: _addressController,
                 inputFormatters: [_AddressInputFormatter()],
                 decoration: const InputDecoration(
                   labelText: 'Dirección',
-                  hintText: 'Ej: Carrera 56 134',
+                  hintText: 'Ej: Calle 11 #46-45',
                   helperText:
-                      'Formato: Calle/Carrera/Avenida + Número. Ej: Carrera 56 134',
+                      'Formato: Calle/Carrera/Avenida + Número. Ej: Calle 11 #46-45',
                   helperMaxLines: 2,
                   prefixIcon: Icon(
                     Icons.location_on_outlined,
@@ -874,14 +896,80 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Campo requerido';
                   if (!_isValidAddress(v)) {
-                    return 'Formato inválido. Ej: Carrera 56 134';
+                    return 'Formato inválido. Ej: Calle 11 #46-45';
                   }
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
-              // Ciudad con autocomplete
+              // Selector de ubicación en mapa
+              GestureDetector(
+                onTap: _openLocationPicker,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: hasLocation
+                        ? AppColors.primary.withOpacity(0.06)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: hasLocation
+                          ? AppColors.primary.withOpacity(0.4)
+                          : AppColors.divider,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.map_outlined,
+                        color: hasLocation
+                            ? AppColors.primary
+                            : AppColors.textHint,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _pickedLat != null
+                              ? 'Ubicación seleccionada ✓\nLat: ${_pickedLat!.toStringAsFixed(5)}, Lon: ${_pickedLon!.toStringAsFixed(5)}'
+                              : widget.shelter.latitude != null
+                              ? 'Ubicación guardada — toca para actualizar'
+                              : 'Seleccionar ubicación exacta en el mapa *',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: hasLocation
+                                ? AppColors.primary
+                                : AppColors.textSecondary,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.textHint,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(left: 4, top: 4, bottom: 4),
+                child: Text(
+                  'Mueve el pin al lugar exacto de tu refugio para que los adoptantes puedan encontrarte',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Ciudad
               TextFormField(
                 controller: _cityController,
                 onChanged: _onCityChanged,
@@ -958,7 +1046,7 @@ class _EditShelterModalState extends ConsumerState<_EditShelterModal> {
                 ),
               const SizedBox(height: 12),
 
-              // Teléfono solo números
+              // Teléfono
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
@@ -1302,7 +1390,7 @@ class _PrivacySafetyModal extends StatelessWidget {
               child: Row(
                 children: [
                   const Text(
-                    'Privacidad & seguridad',
+                    'Privacidad & Seguridad',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -1478,7 +1566,7 @@ class _HelpSupportModal extends StatelessWidget {
               child: Row(
                 children: [
                   const Text(
-                    'Ayuda y soporte',
+                    'Ayuda & Soporte',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -1628,7 +1716,6 @@ class _HelpSupportModal extends StatelessWidget {
 
 class _SectionLabel extends StatelessWidget {
   final String label;
-
   const _SectionLabel({required this.label});
 
   @override
@@ -1648,7 +1735,6 @@ class _SectionLabel extends StatelessWidget {
 class _FaqTile extends StatefulWidget {
   final String question;
   final String answer;
-
   const _FaqTile({required this.question, required this.answer});
 
   @override
@@ -1730,8 +1816,6 @@ class _FaqTileState extends State<_FaqTile> {
     );
   }
 }
-
-// ── Widgets reutilizables ──────────────────────────────────────────────────
 
 class _SettingsTile extends StatelessWidget {
   final IconData icon;

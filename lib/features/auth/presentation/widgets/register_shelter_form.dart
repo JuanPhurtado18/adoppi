@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../controllers/auth_controller.dart';
 import '../../domain/auth_state.dart';
 import 'terms_modal.dart';
+import '../../../shelter_panel/presentation/screens/location_picker_screen.dart';
 
 // ── Ciudades de Colombia ───────────────────────────────────────────────────
 const _colombianCities = [
@@ -72,7 +74,6 @@ class _AddressInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    // Solo permite letras, números y espacios
     final filtered = newValue.text.replaceAll(
       RegExp(r'[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9\s#\-]'),
       '',
@@ -122,22 +123,24 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
   final Set<String> _selectedDays = {};
   TimeOfDay _openTime = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _closeTime = const TimeOfDay(hour: 18, minute: 0);
+
+  // Ubicación en mapa
+  double? _pickedLat;
+  double? _pickedLon;
+
   String get _scheduleText {
     if (_selectedDays.isEmpty) return '';
     final days = _allDays.where((d) => _selectedDays.contains(d)).toList();
-    String dayRange = '';
+    String dayRange;
     if (days.length == 1) {
       dayRange = days.first;
     } else {
-      // Intentar construir rango continuo
       final firstIndex = _allDays.indexOf(days.first);
       final lastIndex = _allDays.indexOf(days.last);
       final continuous = days.length == lastIndex - firstIndex + 1;
       dayRange = continuous ? '${days.first}-${days.last}' : days.join(', ');
     }
-    final open = _formatTime(_openTime);
-    final close = _formatTime(_closeTime);
-    return '$dayRange $open - $close';
+    return '$dayRange ${_formatTime(_openTime)} - ${_formatTime(_closeTime)}';
   }
 
   String _formatTime(TimeOfDay t) {
@@ -162,13 +165,11 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
   void _onCityChanged(String value) {
     setState(() {
       _selectedCity = null;
-      if (value.isEmpty) {
-        _citySuggestions = [];
-      } else {
-        _citySuggestions = _colombianCities
-            .where((c) => c.toLowerCase().contains(value.toLowerCase()))
-            .toList();
-      }
+      _citySuggestions = value.isEmpty
+          ? []
+          : _colombianCities
+                .where((c) => c.toLowerCase().contains(value.toLowerCase()))
+                .toList();
     });
   }
 
@@ -205,8 +206,26 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
     }
   }
 
+  Future<void> _openLocationPicker() async {
+    final result = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(
+          initialLat: _pickedLat,
+          initialLon: _pickedLon,
+          cityName: _selectedCity,
+        ),
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        _pickedLat = result.latitude;
+        _pickedLon = result.longitude;
+      });
+    }
+  }
+
   bool _isValidAddress(String value) {
-    // Acepta: "Carrera 56 134", "Calle 5 #40-45", "Avenida 3 Norte 12", etc.
     final regex = RegExp(
       r'^(Calle|Carrera|Avenida|Diagonal|Transversal|Cra|Cl|Av|Kr)\s+\d+[\w\s#\-]*$',
       caseSensitive: false,
@@ -240,6 +259,17 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
       );
       return;
     }
+    if (_pickedLat == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Por favor selecciona la ubicación de tu refugio en el mapa',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     if (!_acceptedTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -261,6 +291,8 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
           description: _descriptionController.text.trim(),
           schedule: _scheduleText,
           avatarFile: _avatarFile!,
+          latitude: _pickedLat,
+          longitude: _pickedLon,
         );
   }
 
@@ -356,91 +388,144 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
             inputFormatters: [_AddressInputFormatter()],
             decoration: const InputDecoration(
               labelText: 'Dirección *',
-              hintText: 'Ej: Carrera 56 134',
+              hintText: 'Ej: Calle 11 #46-45',
               helperText:
-                  'Formato: Calle/Carrera/Avenida + Número. Ej: Carrera 56 134',
+                  'Formato: Calle/Carrera/Avenida + Número. Ej: Calle 11 #46-45',
               helperMaxLines: 2,
               prefixIcon: Icon(Icons.location_on_outlined),
             ),
             validator: (v) {
-              if (v == null || v.trim().isEmpty)
+              if (v == null || v.trim().isEmpty) {
                 return 'La dirección es requerida';
+              }
               if (!_isValidAddress(v)) {
-                return 'Formato inválido. Ej: Carrera 56 134 o Calle 5 #40-45';
+                return 'Formato inválido. Ej: Calle 11 #46-45';
               }
               return null;
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
 
-          // Ciudad con autocomplete
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: _cityController,
-                onChanged: _onCityChanged,
-                decoration: InputDecoration(
-                  labelText: 'Ciudad *',
-                  hintText: 'Escribe para buscar...',
-                  prefixIcon: const Icon(Icons.location_city_outlined),
-                  suffixIcon: _selectedCity != null
-                      ? const Icon(Icons.check_circle, color: AppColors.success)
-                      : null,
+          // Selector de ubicación en mapa
+          GestureDetector(
+            onTap: _openLocationPicker,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: _pickedLat != null
+                    ? AppColors.primary.withOpacity(0.06)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _pickedLat != null
+                      ? AppColors.primary.withOpacity(0.4)
+                      : AppColors.divider,
                 ),
-                validator: (_) => _selectedCity == null
-                    ? 'Selecciona una ciudad de la lista'
-                    : null,
               ),
-              if (_citySuggestions.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.divider),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.map_outlined,
+                    color: _pickedLat != null
+                        ? AppColors.primary
+                        : AppColors.textHint,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _pickedLat != null
+                          ? 'Ubicación seleccionada ✓\nLat: ${_pickedLat!.toStringAsFixed(5)}, Lon: ${_pickedLon!.toStringAsFixed(5)}'
+                          : 'Seleccionar ubicación exacta en el mapa *',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: _pickedLat != null
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                        height: 1.4,
                       ),
-                    ],
+                    ),
                   ),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    itemCount: _citySuggestions.length > 5
-                        ? 5
-                        : _citySuggestions.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final city = _citySuggestions[index];
-                      return ListTile(
-                        dense: true,
-                        leading: const Icon(
-                          Icons.location_city_outlined,
-                          color: AppColors.primary,
-                          size: 18,
-                        ),
-                        title: Text(city, style: const TextStyle(fontSize: 14)),
-                        onTap: () {
-                          setState(() {
-                            _selectedCity = city;
-                            _cityController.text = city;
-                            _citySuggestions = [];
-                          });
-                        },
-                      );
-                    },
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textHint,
+                    size: 20,
                   ),
-                ),
-            ],
+                ],
+              ),
+            ),
           ),
+          const Padding(
+            padding: EdgeInsets.only(left: 4, top: 4, bottom: 8),
+            child: Text(
+              'Mueve el pin al lugar exacto de tu refugio para que los adoptantes puedan encontrarte',
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+          ),
+
+          // Ciudad
+          TextFormField(
+            controller: _cityController,
+            onChanged: _onCityChanged,
+            decoration: InputDecoration(
+              labelText: 'Ciudad *',
+              hintText: 'Escribe para buscar...',
+              prefixIcon: const Icon(Icons.location_city_outlined),
+              suffixIcon: _selectedCity != null
+                  ? const Icon(Icons.check_circle, color: AppColors.success)
+                  : null,
+            ),
+            validator: (_) => _selectedCity == null
+                ? 'Selecciona una ciudad de la lista'
+                : null,
+          ),
+          if (_citySuggestions.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.divider),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
+                itemCount: _citySuggestions.length > 5
+                    ? 5
+                    : _citySuggestions.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final city = _citySuggestions[index];
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(
+                      Icons.location_city_outlined,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                    title: Text(city, style: const TextStyle(fontSize: 14)),
+                    onTap: () {
+                      setState(() {
+                        _selectedCity = city;
+                        _cityController.text = city;
+                        _citySuggestions = [];
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
           const SizedBox(height: 16),
 
-          // Teléfono — solo números
+          // Teléfono
           TextFormField(
             controller: _phoneController,
             keyboardType: TextInputType.phone,
@@ -451,8 +536,9 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
               prefixIcon: Icon(Icons.phone_outlined),
             ),
             validator: (v) {
-              if (v == null || v.trim().isEmpty)
+              if (v == null || v.trim().isEmpty) {
                 return 'El teléfono es requerido';
+              }
               if (v.trim().length < 7) return 'Ingresa un teléfono válido';
               return null;
             },
@@ -469,8 +555,6 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
             ),
           ),
           const SizedBox(height: 12),
-
-          // Selector de días
           const Text(
             'Días',
             style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
@@ -517,8 +601,6 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
             }).toList(),
           ),
           const SizedBox(height: 16),
-
-          // Selector de horas
           const Text(
             'Horario',
             style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
@@ -624,8 +706,6 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
               ),
             ],
           ),
-
-          // Preview del horario generado
           if (_selectedDays.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
@@ -669,8 +749,9 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
               prefixIcon: Icon(Icons.email_outlined),
             ),
             validator: (v) {
-              if (v == null || v.trim().isEmpty)
+              if (v == null || v.trim().isEmpty) {
                 return 'El correo es requerido';
+              }
               if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
                 return 'Ingresa un correo válido';
               }
@@ -699,8 +780,9 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
             ),
             validator: (v) {
               if (v == null || v.isEmpty) return 'La contraseña es requerida';
-              if (v.length < 6)
+              if (v.length < 6) {
                 return 'La contraseña debe tener al menos 6 caracteres';
+              }
               return null;
             },
           ),

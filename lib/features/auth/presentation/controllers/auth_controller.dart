@@ -62,6 +62,8 @@ class AuthController extends StateNotifier<AuthState> {
     required String description,
     required String schedule,
     required File avatarFile,
+    double? latitude,
+    double? longitude,
   }) async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
@@ -75,6 +77,8 @@ class AuthController extends StateNotifier<AuthState> {
         description: description,
         schedule: schedule,
         avatarFile: avatarFile,
+        latitude: latitude,
+        longitude: longitude,
       );
       state = state.copyWith(status: AuthStatus.registered);
     } catch (e) {

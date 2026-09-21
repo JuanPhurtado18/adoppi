@@ -48,21 +48,6 @@ class ShelterController extends StateNotifier<ShelterState> {
     state = state.copyWith(isLoading: true);
     try {
       await _repository.updateShelter(shelterId: state.shelter!.id, data: data);
-
-      // Geolocalizar si hay dirección
-      final address = data['address'] as String?;
-      final city = data['city'] as String?;
-      if (address != null &&
-          address.isNotEmpty &&
-          city != null &&
-          city.isNotEmpty) {
-        await _repository.geocodeAndUpdateShelter(
-          shelterId: state.shelter!.id,
-          address: address,
-          city: city,
-        );
-      }
-
       await loadShelter();
       return true;
     } catch (e) {
@@ -78,9 +63,8 @@ class ShelterController extends StateNotifier<ShelterState> {
     if (state.shelter == null) return false;
     state = state.copyWith(isLoading: true);
     try {
-      final userId = state.shelter!.userId;
       await _repository.updateShelterAvatar(
-        userId: userId,
+        userId: state.shelter!.userId,
         shelterId: state.shelter!.id,
         file: file,
       );
