@@ -30,8 +30,19 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   build_runner: ^2.4.15
   riverpod_generator: ^2.6.5
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/icon/
+
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#ece9f2"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
