@@ -406,63 +406,6 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
           ),
           const SizedBox(height: 8),
 
-          // Selector de ubicación en mapa
-          GestureDetector(
-            onTap: _openLocationPicker,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: _pickedLat != null
-                    ? AppColors.primary.withOpacity(0.06)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _pickedLat != null
-                      ? AppColors.primary.withOpacity(0.4)
-                      : AppColors.divider,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.map_outlined,
-                    color: _pickedLat != null
-                        ? AppColors.primary
-                        : AppColors.textHint,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      _pickedLat != null
-                          ? 'Ubicación seleccionada ✓\nLat: ${_pickedLat!.toStringAsFixed(5)}, Lon: ${_pickedLon!.toStringAsFixed(5)}'
-                          : 'Seleccionar ubicación exacta en el mapa *',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: _pickedLat != null
-                            ? AppColors.primary
-                            : AppColors.textSecondary,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.textHint,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.only(left: 4, top: 4, bottom: 8),
-            child: Text(
-              'Mueve el pin al lugar exacto de tu refugio para que los adoptantes puedan encontrarte',
-              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-            ),
-          ),
-
           // Ciudad
           TextFormField(
             controller: _cityController,
@@ -524,6 +467,63 @@ class _RegisterShelterFormState extends ConsumerState<RegisterShelterForm> {
               ),
             ),
           const SizedBox(height: 16),
+
+          // Selector de ubicación en mapa
+          GestureDetector(
+            onTap: _openLocationPicker,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: _pickedLat != null
+                    ? AppColors.primary.withOpacity(0.06)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _pickedLat != null
+                      ? AppColors.primary.withOpacity(0.4)
+                      : AppColors.divider,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.map_outlined,
+                    color: _pickedLat != null
+                        ? AppColors.primary
+                        : AppColors.textHint,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      _pickedLat != null
+                          ? 'Ubicación seleccionada ✓\nLat: ${_pickedLat!.toStringAsFixed(5)}, Lon: ${_pickedLon!.toStringAsFixed(5)}'
+                          : 'Seleccionar ubicación exacta en el mapa *',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: _pickedLat != null
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textHint,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(left: 4, top: 4, bottom: 8),
+            child: Text(
+              'Mueve el pin al lugar exacto de tu refugio para que los adoptantes puedan encontrarte',
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            ),
+          ),
 
           // Teléfono
           TextFormField(
