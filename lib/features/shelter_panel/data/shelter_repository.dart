@@ -74,14 +74,14 @@ class ShelterRepository {
         '${shelterId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final filePath = 'pets/$fileName';
 
-    await _client.storage.from('pet-photos').upload(
+    await _client.storage.from('pets').upload(
       filePath,
       photoFile,
       fileOptions: const FileOptions(upsert: true),
     );
 
     final photoUrl =
-        _client.storage.from('pet-photos').getPublicUrl(filePath);
+        _client.storage.from('pets').getPublicUrl(filePath);
 
     final petData = pet.toMap(shelterId);
     petData['main_photo_url'] = photoUrl;
@@ -99,14 +99,14 @@ class ShelterRepository {
           '${petId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final filePath = 'pets/$fileName';
 
-      await _client.storage.from('pet-photos').upload(
+      await _client.storage.from('pets').upload(
         filePath,
         newPhotoFile,
         fileOptions: const FileOptions(upsert: true),
       );
 
       final photoUrl =
-          _client.storage.from('pet-photos').getPublicUrl(filePath);
+          _client.storage.from('pets').getPublicUrl(filePath);
       data['main_photo_url'] = photoUrl;
     }
 

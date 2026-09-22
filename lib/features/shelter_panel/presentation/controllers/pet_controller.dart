@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/shelter_repository.dart';
 import '../../domain/pet.dart';
+import 'package:flutter/foundation.dart';
 
 class PetState {
   final List<Pet> pets;
@@ -52,10 +53,7 @@ class PetController extends StateNotifier<PetState> {
     }
   }
 
-  Future<bool> createPet({
-    required Pet pet,
-    required File photoFile,
-  }) async {
+  Future<bool> createPet({required Pet pet, required File photoFile}) async {
     state = state.copyWith(isSaving: true);
     try {
       await _repository.createPet(
@@ -66,7 +64,9 @@ class PetController extends StateNotifier<PetState> {
       await loadPets();
       state = state.copyWith(isSaving: false);
       return true;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('❌ [PET] Error al crear mascota: $e');
+      debugPrint('❌ [PET] Stack: $stack');
       state = state.copyWith(
         isSaving: false,
         errorMessage: 'Error al publicar la mascota',
@@ -111,7 +111,10 @@ class PetController extends StateNotifier<PetState> {
   }
 }
 
-final petControllerProvider = StateNotifierProvider.family<PetController,
-    PetState, String>((ref, shelterId) {
-  return PetController(ref.watch(shelterRepositoryProvider), shelterId);
-});
+final petControllerProvider =
+    StateNotifierProvider.family<PetController, PetState, String>((
+      ref,
+      shelterId,
+    ) {
+      return PetController(ref.watch(shelterRepositoryProvider), shelterId);
+    });
