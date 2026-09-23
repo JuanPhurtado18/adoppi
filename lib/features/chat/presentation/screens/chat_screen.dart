@@ -6,6 +6,7 @@ import '../controllers/chat_controller.dart';
 import '../../data/chat_repository.dart';
 import '../../domain/conversation.dart';
 import '../../domain/message.dart';
+import '../../../notifications/presentation/notification_bell.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final Conversation conversation;
@@ -14,7 +15,7 @@ class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({
     super.key,
     required this.conversation,
-    this.isShelter = false,
+    required this.isShelter,
   });
 
   @override
@@ -24,20 +25,10 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-  final _currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
   bool _isSending = false;
 
-  @override
-  void initState() {
-    super.initState();
-    // Marcar mensajes como leídos al entrar
-    ref
-        .read(chatRepositoryProvider)
-        .markAsRead(
-          conversationId: widget.conversation.id,
-          userId: _currentUserId,
-        );
-  }
+  String get _currentUserId =>
+      Supabase.instance.client.auth.currentUser?.id ?? '';
 
   @override
   void dispose() {
@@ -88,11 +79,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  String _otherPartyName() {
-    if (widget.isShelter) {
-      return widget.conversation.adoptantInfo?['full_name'] ?? 'Adoptante';
+  // ── Corrección zona horaria Colombia (UTC-5) ──
+  String _formatTime(DateTime dateTime) {
+    // Ya viene en local desde el modelo, pero por seguridad
+    final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String _formatDateSeparator(DateTime dateTime) {
+    final local = dateTime.isUtc ? dateTime.toLocal() : dateTime;
+    if (true) {
+      final now = DateTime.now();
+      debugPrint('🕐 Hora local del dispositivo: $now');
+      debugPrint('🕐 Zona horaria offset: ${now.timeZoneOffset}');
+
+      final today = DateTime(now.year, now.month, now.day);
+      final messageDay = DateTime(local.year, local.month, local.day);
+      final diff = today.difference(messageDay).inDays;
+      if (diff == 0) return 'Hoy';
+      if (diff == 1) return 'Ayer';
+      return '${local.day}/${local.month}/${local.year}';
     }
-    return widget.conversation.shelterInfo?['name'] ?? 'Refugio';
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    final la = a.isUtc ? a.toLocal() : a;
+    final lb = b.isUtc ? b.toLocal() : b;
+    return la.year == lb.year && la.month == lb.month && la.day == lb.day;
   }
 
   @override
@@ -101,41 +116,72 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       messagesStreamProvider(widget.conversation.id),
     );
 
+    final otherName = widget.isShelter
+        ? (widget.conversation.adoptantInfo?['full_name'] as String? ??
+              'Adoptante')
+        : (widget.conversation.shelterInfo?['name'] as String? ?? 'Refugio');
+
+    final otherAvatar = widget.isShelter
+        ? (widget.conversation.adoptantInfo?['avatar_url'] as String?)
+        : (widget.conversation.shelterInfo?['avatar_url'] as String?);
+
+    final petName = widget.conversation.petInfo?['name'] as String?;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
+        elevation: 0.5,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            Text(
-              _otherPartyName(),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: AppColors.divider,
+              backgroundImage: otherAvatar != null
+                  ? NetworkImage(otherAvatar)
+                  : null,
+              child: otherAvatar == null
+                  ? const Icon(
+                      Icons.person,
+                      color: AppColors.textHint,
+                      size: 18,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    otherName,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  if (petName != null)
+                    Text(
+                      'Sobre: $petName',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                ],
               ),
             ),
-            if (widget.conversation.petInfo?['name'] != null)
-              Text(
-                'Sobre: ${widget.conversation.petInfo!['name']}',
-                style: const TextStyle(fontSize: 12, color: AppColors.primary),
-              ),
           ],
         ),
-        elevation: 0,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1),
-        ),
+        actions: [const NotificationBell(), const SizedBox(width: 8)],
       ),
       body: Column(
         children: [
-          // Mensajes
           Expanded(
             child: messagesAsync.when(
               loading: () => const Center(
@@ -144,96 +190,162 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               error: (e, _) =>
                   const Center(child: Text('Error al cargar mensajes')),
               data: (messages) {
+                if (messages.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Inicia la conversación',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  );
+                }
+
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   _scrollToBottom();
                 });
-                return messages.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No hay mensajes aún',
-                          style: TextStyle(color: AppColors.textSecondary),
+
+                // Marcar como leídos
+                ref
+                    .read(chatRepositoryProvider)
+                    .markAsRead(
+                      conversationId: widget.conversation.id,
+                      userId: _currentUserId,
+                    );
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final isMe = message.senderId == _currentUserId;
+                    final showDateSeparator =
+                        index == 0 ||
+                        !_isSameDay(
+                          messages[index - 1].createdAt,
+                          message.createdAt,
+                        );
+
+                    return Column(
+                      children: [
+                        if (showDateSeparator)
+                          _DateSeparator(
+                            label: _formatDateSeparator(message.createdAt),
+                          ),
+                        _MessageBubble(
+                          message: message,
+                          isMe: isMe,
+                          timeLabel: _formatTime(message.createdAt),
                         ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: messages.length,
-                        itemBuilder: (context, index) {
-                          final message = messages[index];
-                          final isMe = message.senderId == _currentUserId;
-                          return _MessageBubble(message: message, isMe: isMe);
-                        },
-                      );
+                      ],
+                    );
+                  },
+                );
               },
             ),
           ),
 
-          // Input de mensaje
+          // Input
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(top: BorderSide(color: AppColors.divider)),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.divider),
-                    ),
-                    child: TextField(
-                      controller: _messageController,
-                      maxLines: null,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        hintText: 'Escribe un mensaje...',
-                        hintStyle: TextStyle(
-                          color: AppColors.textHint,
-                          fontSize: 14,
-                        ),
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
+            child: SafeArea(
+              top: false,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: AppColors.divider),
                       ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _sendMessage,
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: _isSending
-                        ? const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.send_rounded,
-                            color: Colors.white,
-                            size: 20,
+                      child: TextField(
+                        controller: _messageController,
+                        maxLines: null,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          hintText: 'Escribe un mensaje...',
+                          hintStyle: TextStyle(
+                            color: AppColors.textHint,
+                            fontSize: 14,
                           ),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                        ),
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _isSending ? null : _sendMessage,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _isSending
+                            ? AppColors.divider
+                            : AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: _isSending
+                          ? const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.send,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DateSeparator extends StatelessWidget {
+  final String label;
+
+  const _DateSeparator({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          const Expanded(child: Divider()),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textHint,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const Expanded(child: Divider()),
         ],
       ),
     );
@@ -243,68 +355,65 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 class _MessageBubble extends StatelessWidget {
   final Message message;
   final bool isMe;
+  final String timeLabel;
 
-  const _MessageBubble({required this.message, required this.isMe});
-
-  String _timeLabel(DateTime dt) {
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
-  }
+  const _MessageBubble({
+    required this.message,
+    required this.isMe,
+    required this.timeLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        mainAxisAlignment: isMe
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!isMe) const SizedBox(width: 8),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: isMe ? AppColors.primary : Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(16),
-                  topRight: const Radius.circular(16),
-                  bottomLeft: Radius.circular(isMe ? 16 : 4),
-                  bottomRight: Radius.circular(isMe ? 4 : 16),
-                ),
-                border: isMe ? null : Border.all(color: AppColors.divider),
-              ),
-              child: Column(
-                crossAxisAlignment: isMe
-                    ? CrossAxisAlignment.end
-                    : CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    message.content,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isMe ? Colors.white : AppColors.textPrimary,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _timeLabel(message.createdAt),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: isMe
-                          ? Colors.white.withOpacity(0.7)
-                          : AppColors.textHint,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 4),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
+        decoration: BoxDecoration(
+          color: isMe ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isMe ? 16 : 4),
+            bottomRight: Radius.circular(isMe ? 4 : 16),
           ),
-          if (isMe) const SizedBox(width: 8),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                message.content,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: isMe ? Colors.white : AppColors.textPrimary,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                timeLabel,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isMe
+                      ? Colors.white.withOpacity(0.7)
+                      : AppColors.textHint,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

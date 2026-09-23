@@ -31,13 +31,18 @@ class Conversation {
       petId: map['pet_id'],
       lastMessage: map['last_message'],
       lastMessageAt: map['last_message_at'] != null
-          ? DateTime.parse(map['last_message_at'])
+          ? _parseDate(map['last_message_at'])
           : null,
-      createdAt: DateTime.parse(map['created_at']),
+      createdAt: _parseDate(map['created_at']),
       shelterInfo: map['shelters'] as Map<String, dynamic>?,
       adoptantInfo: map['profiles'] as Map<String, dynamic>?,
       petInfo: map['pets'] as Map<String, dynamic>?,
     );
+  }
+
+  static DateTime _parseDate(String dateStr) {
+    final utc = DateTime.parse(dateStr).toUtc();
+    return utc.toLocal();
   }
 
   String get otherPartyName {

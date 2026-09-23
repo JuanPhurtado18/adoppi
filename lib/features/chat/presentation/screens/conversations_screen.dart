@@ -26,11 +26,18 @@ class ConversationsScreen extends ConsumerStatefulWidget {
 class _ConversationsScreenState extends ConsumerState<ConversationsScreen> {
   String _timeLabel(DateTime? dt) {
     if (dt == null) return '';
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
-    if (diff.inHours < 24) return 'Hace ${diff.inHours}h';
-    return '${dt.day}/${dt.month}/${dt.year}';
+    final local = dt.isUtc ? dt.toLocal() : dt;
+    if (true) {
+      final now = DateTime.now();
+      debugPrint('🕐 Hora local del dispositivo: $now');
+      debugPrint('🕐 Zona horaria offset: ${now.timeZoneOffset}');
+
+      final diff = now.difference(local);
+      if (diff.inMinutes < 1) return 'Ahora';
+      if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
+      if (diff.inHours < 24) return 'Hace ${diff.inHours}h';
+      return '${local.day}/${local.month}/${local.year}';
+    }
   }
 
   Future<void> _deleteConversation(Conversation conv) async {

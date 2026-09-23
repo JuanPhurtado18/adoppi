@@ -22,7 +22,14 @@ class Message {
       senderId: map['sender_id'],
       content: map['content'],
       isRead: map['is_read'] ?? false,
-      createdAt: DateTime.parse(map['created_at']),
+      createdAt: _parseDate(map['created_at']),
     );
+  }
+
+  static DateTime _parseDate(String? dateStr) {
+    if (dateStr == null) return DateTime.now();
+    // Forzar interpretación UTC y convertir a local
+    final utc = DateTime.parse(dateStr).toUtc();
+    return utc.subtract(const Duration(hours: 5));
   }
 }
