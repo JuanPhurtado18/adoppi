@@ -200,8 +200,8 @@ class _SheltersTabState extends ConsumerState<SheltersTab> {
                                             shelter.latitude!,
                                             shelter.longitude!,
                                           ),
-                                          width: 40,
-                                          height: 40,
+                                          width: 56,
+                                          height: 56,
                                           child: GestureDetector(
                                             onTap: () {
                                               Navigator.push(
@@ -216,7 +216,6 @@ class _SheltersTabState extends ConsumerState<SheltersTab> {
                                             },
                                             child: Container(
                                               decoration: BoxDecoration(
-                                                color: AppColors.primary,
                                                 shape: BoxShape.circle,
                                                 border: Border.all(
                                                   color: Colors.white,
@@ -231,10 +230,39 @@ class _SheltersTabState extends ConsumerState<SheltersTab> {
                                                   ),
                                                 ],
                                               ),
-                                              child: const Icon(
-                                                Icons.home,
-                                                color: Colors.white,
-                                                size: 20,
+                                              child: ClipOval(
+                                                child: shelter.avatarUrl != null
+                                                    ? CachedNetworkImage(
+                                                        imageUrl:
+                                                            shelter.avatarUrl!,
+                                                        width: 56,
+                                                        height: 56,
+                                                        fit: BoxFit.cover,
+                                                        errorWidget:
+                                                            (
+                                                              _,
+                                                              __,
+                                                              ___,
+                                                            ) => Container(
+                                                              color: AppColors
+                                                                  .primary,
+                                                              child: const Icon(
+                                                                Icons.home,
+                                                                color: Colors
+                                                                    .white,
+                                                                size: 24,
+                                                              ),
+                                                            ),
+                                                      )
+                                                    : Container(
+                                                        color:
+                                                            AppColors.primary,
+                                                        child: const Icon(
+                                                          Icons.home,
+                                                          color: Colors.white,
+                                                          size: 24,
+                                                        ),
+                                                      ),
                                               ),
                                             ),
                                           ),
