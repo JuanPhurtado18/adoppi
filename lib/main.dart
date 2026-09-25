@@ -10,6 +10,7 @@ import 'features/shelter_panel/presentation/controllers/shelter_controller.dart'
 import 'features/home/presentation/screens/profile_tab.dart';
 import 'features/chat/presentation/controllers/chat_controller.dart';
 import 'firebase_options.dart';
+import 'features/notifications/presentation/notifications_provider.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -55,6 +56,8 @@ class _AdoppiAppState extends ConsumerState<AdoppiApp> {
         ref.invalidate(shelterControllerProvider);
         ref.invalidate(adoptantProfileProvider);
         ref.invalidate(adoptantConversationsProvider);
+        ref.invalidate(notificationsProvider);
+        ref.invalidate(unreadCountProvider);
         _saveFCMToken();
       }
       if (event == AuthChangeEvent.signedOut ||
@@ -62,6 +65,8 @@ class _AdoppiAppState extends ConsumerState<AdoppiApp> {
         ref.invalidate(shelterControllerProvider);
         ref.invalidate(adoptantProfileProvider);
         ref.invalidate(adoptantConversationsProvider);
+        ref.invalidate(notificationsProvider);
+        ref.invalidate(unreadCountProvider);
         ref.read(appRouterProvider).go(AppRoutes.login);
       }
     });
