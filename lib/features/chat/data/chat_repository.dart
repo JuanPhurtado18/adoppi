@@ -16,17 +16,23 @@ class ChatRepository {
     String? petId,
     required String petName,
   }) async {
+    // Buscar conversación existente SIN filtrar deleted — puede haber sido eliminada
     final existingList = await _client
         .from('conversations')
         .select('*, shelters(name, avatar_url), pets(name, main_photo_url)')
         .eq('adoptant_id', adoptantId)
         .eq('shelter_id', shelterId)
-        .eq('deleted_by_adoptant', false)
         .order('created_at', ascending: false)
         .limit(1);
 
     if ((existingList as List).isNotEmpty) {
       final existing = Conversation.fromMap(existingList.first);
+
+      // Reactivar para ambos si fue eliminada por alguno
+      await _client
+          .from('conversations')
+          .update({'deleted_by_adoptant': false, 'deleted_by_shelter': false})
+          .eq('id', existing.id);
 
       if (petId != null) {
         if (existing.petId == null) {
@@ -65,6 +71,7 @@ class ChatRepository {
       return existing;
     }
 
+    // No existe — crear nueva
     final insertData = {
       'adoptant_id': adoptantId,
       'shelter_id': shelterId,
@@ -159,6 +166,12 @@ class ChatRepository {
           'last_message': content,
           'last_message_at': DateTime.now().toIso8601String(),
         })
+        .eq('id', conversationId);
+
+    // Reactivar conversación para ambos si fue eliminada
+    await _client
+        .from('conversations')
+        .update({'deleted_by_adoptant': false, 'deleted_by_shelter': false})
         .eq('id', conversationId);
 
     final conv = await _client
