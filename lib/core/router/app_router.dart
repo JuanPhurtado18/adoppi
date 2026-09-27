@@ -1,3 +1,4 @@
+import 'package:adoppi/features/admin/presentation/admin_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,18 +11,18 @@ import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/verify_otp_screen.dart';
 import '../../features/auth/presentation/screens/new_password_screen.dart';
 
-// Flag global para saber si estamos en flujo de recuperación de contraseña
 final passwordRecoveryModeProvider = StateProvider<bool>((ref) => false);
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
     redirect: (context, state) async {
-      final session = Supabase.instance.client.auth.currentSession;
+      final supabase = Supabase.instance.client;
+      final session = supabase.auth.currentSession;
       final isAuthenticated = session != null;
       final isRecoveryMode = ref.read(passwordRecoveryModeProvider);
 
-      // Si está en modo recuperación, permitir newPassword sin redirigir
+      // Permitir recuperación de contraseña
       if (isRecoveryMode && state.matchedLocation == AppRoutes.newPassword) {
         return null;
       }
@@ -33,21 +34,86 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation == AppRoutes.verifyOtp ||
           state.matchedLocation == AppRoutes.newPassword;
 
-      if (!isAuthenticated && !isAuthRoute) {
-        if (state.matchedLocation != AppRoutes.splash) {
-          return AppRoutes.login;
+      // No hay sesión → solo puede estar en rutas públicas
+      if (!isAuthenticated) {
+        if (isAuthRoute || state.matchedLocation == AppRoutes.splash) {
+          return null;
         }
+
+        return AppRoutes.login;
       }
 
+      // Hay sesión y está intentando entrar a login/register/etc.
       if (isAuthenticated && isAuthRoute && !isRecoveryMode) {
-        final role = session.user.userMetadata?['role'] as String?;
-        if (role == 'refugio') return AppRoutes.shelterPanel;
+        final userId = session.user.id;
+
+        final profile = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle();
+
+        final role =
+            profile?['role'] as String? ??
+            session.user.userMetadata?['role'] as String?;
+
+        if (role == 'admin') {
+          return AppRoutes.adminPanel;
+        }
+
+        if (role == 'refugio') {
+          return AppRoutes.shelterPanel;
+        }
+
         return AppRoutes.home;
       }
 
+      // Hay sesión y está en splash → determinar destino por el perfil
+      if (isAuthenticated && state.matchedLocation == AppRoutes.splash) {
+        final userId = session.user.id;
+
+        final profile = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle();
+
+        final role =
+            profile?['role'] as String? ??
+            session.user.userMetadata?['role'] as String?;
+
+        if (role == 'admin') {
+          return AppRoutes.adminPanel;
+        }
+
+        if (role == 'refugio') {
+          return AppRoutes.shelterPanel;
+        }
+
+        return AppRoutes.home;
+      }
+
+      // Si está en home pero realmente es admin/refugio,
+      // llevarlo a su panel correspondiente.
       if (isAuthenticated && state.matchedLocation == AppRoutes.home) {
-        final role = session.user.userMetadata?['role'] as String?;
-        if (role == 'refugio') return AppRoutes.shelterPanel;
+        final userId = session.user.id;
+
+        final profile = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .maybeSingle();
+
+        final role =
+            profile?['role'] as String? ?? session.user.userMetadata?['role'];
+
+        if (role == 'admin') {
+          return AppRoutes.adminPanel;
+        }
+
+        if (role == 'refugio') {
+          return AppRoutes.shelterPanel;
+        }
       }
 
       return null;
@@ -99,6 +165,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.shelterPanel,
         name: 'shelterPanel',
         builder: (context, state) => const ShelterPanelScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.adminPanel,
+        name: 'adminPanel',
+        builder: (context, state) => const AdminScreen(),
       ),
       GoRoute(
         path: AppRoutes.petDetail,
@@ -154,6 +225,7 @@ class AppRoutes {
   static const String terms = '/terms';
   static const String home = '/home';
   static const String shelterPanel = '/shelter-panel';
+  static const String adminPanel = '/admin-panel';
   static const String petDetail = '/pets/:id';
   static const String shelters = '/shelters';
   static const String shelterDetail = '/shelters/:id';

@@ -60,6 +60,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final role = user?.userMetadata?['role'] as String?;
         if (role == 'refugio') {
           context.go(AppRoutes.shelterPanel);
+        } else if (role == 'admin') {
+          context.go(AppRoutes.adminPanel);
         } else {
           context.go(AppRoutes.home);
         }

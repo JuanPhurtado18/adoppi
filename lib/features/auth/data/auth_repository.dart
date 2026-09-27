@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -11,10 +12,35 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    return await _client.auth.signInWithPassword(
-      email: email,
-      password: password,
-    );
+    try {
+      final response = await _client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      final userId = response.user?.id;
+      debugPrint('👤 [AUTH] userId: $userId');
+      debugPrint('👤 [AUTH] metadata: ${response.user?.userMetadata}');
+
+      if (userId != null) {
+        final profile = await _client
+            .from('profiles')
+            .select('is_blocked, role')
+            .eq('id', userId)
+            .maybeSingle();
+
+        // Si no hay perfil (admin creado manualmente) o no está bloqueado, continuar
+        if (profile?['is_blocked'] == true) {
+          await _client.auth.signOut();
+          throw Exception('blocked');
+        }
+      }
+
+      return response;
+    } catch (e) {
+      debugPrint('❌ [AUTH] Error: $e');
+      rethrow;
+    }
   }
 
   Future<void> signUpAdoptant({

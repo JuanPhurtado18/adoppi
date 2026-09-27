@@ -115,6 +115,9 @@ class AuthController extends StateNotifier<AuthState> {
     if (error.contains('network')) {
       return 'Error de conexión, verifica tu internet';
     }
+    if (error.contains('blocked')) {
+      return 'Tu perfil ha sido bloqueado. Contacta al administrador para más información.';
+    }
     return 'Ocurrió un error, intenta de nuevo';
   }
 }
