@@ -13,7 +13,31 @@ class AdminRepository {
         .neq('role', 'admin')
         .order('created_at', ascending: false);
 
-    return (response as List).cast<Map<String, dynamic>>();
+    final users = (response as List).cast<Map<String, dynamic>>();
+
+    // Para los refugios, obtener el avatar_url de la tabla shelters
+    final result = await Future.wait(
+      users.map((user) async {
+        if (user['role'] == 'refugio') {
+          final shelter = await _client
+              .from('shelters')
+              .select('avatar_url, name')
+              .eq('user_id', user['id'])
+              .maybeSingle();
+
+          if (shelter != null) {
+            return {
+              ...user,
+              'avatar_url': shelter['avatar_url'],
+              'shelter_name': shelter['name'],
+            };
+          }
+        }
+        return user;
+      }),
+    );
+
+    return result;
   }
 
   Future<Map<String, dynamic>?> getUserDetails(String userId) async {
@@ -31,7 +55,12 @@ class AdminRepository {
           .select()
           .eq('user_id', userId)
           .maybeSingle();
-      return {...profile, 'shelter': shelter};
+
+      return {
+        ...profile,
+        'avatar_url': shelter?['avatar_url'] ?? profile['avatar_url'],
+        'shelter': shelter,
+      };
     }
 
     return profile;
