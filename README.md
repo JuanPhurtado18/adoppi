@@ -10,7 +10,7 @@ El proyecto nace como una iniciativa de desarrollo de software enfocada en brind
 
 ---
 
-## 📱 Sobre el proyecto
+## Sobre el proyecto
 
 Actualmente, muchos refugios y fundaciones publican información sobre mascotas disponibles para adopción a través de redes sociales, grupos y diferentes plataformas, lo que dificulta encontrar información centralizada y actualizada.
 
