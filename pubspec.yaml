@@ -1,6 +1,6 @@
 name: adoppi
 description: "Encuentra tu compañero perfecto"
-version: 1.0.0+1
+version: 1.0.0+4
 
 environment:
   sdk: '^3.12.0'

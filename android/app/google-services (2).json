@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:1032543166438:android:c6eee67ad5707f2cce8027",
+        "android_client_info": {
+          "package_name": "com.adoppi.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSXT1xwL7MlLLBTgEJF7P8-lAFKYyeKJk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:1032543166438:android:7ad714aeeff5e204ce8027",
         "android_client_info": {
           "package_name": "com.example.adoppi"
